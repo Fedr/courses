@@ -5,6 +5,8 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "knapsack", "knapsack\knapsack.vcxproj", "{701F22C7-CEAE-4AE3-B692-B5FC9DF1F79A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "coloring", "coloring\coloring.vcxproj", "{C808B260-085D-42D5-A905-33C46F4B1CB3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -15,6 +17,10 @@ Global
 		{701F22C7-CEAE-4AE3-B692-B5FC9DF1F79A}.Debug|x64.Build.0 = Debug|x64
 		{701F22C7-CEAE-4AE3-B692-B5FC9DF1F79A}.Release|x64.ActiveCfg = Release|x64
 		{701F22C7-CEAE-4AE3-B692-B5FC9DF1F79A}.Release|x64.Build.0 = Release|x64
+		{C808B260-085D-42D5-A905-33C46F4B1CB3}.Debug|x64.ActiveCfg = Debug|x64
+		{C808B260-085D-42D5-A905-33C46F4B1CB3}.Debug|x64.Build.0 = Debug|x64
+		{C808B260-085D-42D5-A905-33C46F4B1CB3}.Release|x64.ActiveCfg = Release|x64
+		{C808B260-085D-42D5-A905-33C46F4B1CB3}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
