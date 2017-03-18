@@ -66,18 +66,23 @@ void Coloring::assignColor(int vert, int color)
   assert(v.color < 0);
   assert(v.prohibitedColors.size() <= color || !v.prohibitedColors[color]);
   v.color = color;
+  v.prohibitedColors.clear(); //save space
+  v.numProhibitedColors = -1; //invalid now
   for (const auto & e : edges)
   {
     if (e.v0 == vert || e.v1 == vert)
     {
       auto & vo = verts[e.other(vert)];
-      if (vo.prohibitedColors.size() <= color)
+      if (vo.color < 0)
       {
-        vo.prohibitedColors.resize(color + 1);
+        if (vo.prohibitedColors.size() <= color)
+        {
+          vo.prohibitedColors.resize(color + 1);
+        }
+        if (!vo.prohibitedColors[color])
+          ++vo.numProhibitedColors;
+        vo.prohibitedColors[color] = true;
       }
-      if (!vo.prohibitedColors[color])
-        ++vo.numProhibitedColors;
-      vo.prohibitedColors[color] = true;
       --vo.notColoredNeis;
     }
   }
