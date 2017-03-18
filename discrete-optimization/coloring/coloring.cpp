@@ -228,7 +228,12 @@ bool Coloring::assignColorsNoVariants(int maxColors)
       const auto & v = verts[i];
       if (v.color < 0 && v.numProhibitedColors >= maxColors)
         return false;
-      if (v.color < 0 && v.numProhibitedColors + 1 == maxColors)
+      if (v.color < 0 && v.notColoredNeis == 0)
+      {
+        assignFirstNotProhibitedColor(maxColors, i);
+        // do not mark as changed, since no other vertex is affected
+      }
+      else if (v.color < 0 && v.numProhibitedColors + 1 == maxColors)
       {
         assignFirstNotProhibitedColor(maxColors, i);
         changed = true;
