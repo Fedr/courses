@@ -33,7 +33,7 @@ int degree(int v)
 struct Vertex
 {
   int degree = 0;
-  int color = -1; // not assigmed yet
+  int color = -1; // not assigned yet
   int notColoredNeis = 0;
   std::vector<bool> prohibitedColors;
   int numProhibitedColors = 0;
@@ -47,6 +47,7 @@ struct Coloring
 {
   std::vector<Vertex> verts;
   int colorsUsed = 0;
+  int firstNotColoredVertex = 0;
 
   int extendClique(const std::set<int> & clique) const;
   int solve(); //no limit
@@ -84,6 +85,13 @@ void Coloring::assignColor(int vert, int color)
         vo.prohibitedColors[color] = true;
       }
       --vo.notColoredNeis;
+    }
+  }
+  if (vert == firstNotColoredVertex)
+  {
+    for (++firstNotColoredVertex; firstNotColoredVertex < verts.size() && verts[firstNotColoredVertex].color >= 0; ++firstNotColoredVertex)
+    {
+      //nothing here
     }
   }
 }
@@ -172,7 +180,7 @@ int Coloring::extendClique(const std::set<int> & clique) const
 int Coloring::solve()
 {
   //greedy algorithm
-  for (int i = 0; i < V; ++i)
+  for (int i = firstNotColoredVertex; i < V; ++i)
   {
     if (!assignFirstNotProhibitedColor(V, vertsSorted[i]))
       return -1;
@@ -186,7 +194,7 @@ int Coloring::solve(int maxColors)
   if (!assignColorsNoVariants(maxColors))
     return -1;
 
-  for (int i = 0; i < V; ++i)
+  for (int i = firstNotColoredVertex; i < V; ++i)
   {
     int vert = vertsSorted[i];
     if (verts[vert].color >= 0)
@@ -228,7 +236,7 @@ bool Coloring::assignColorsNoVariants(int maxColors)
   for (int m = 0;; ++m)
   {
     bool changed = false;
-    for (int i = 0; i < V; ++i)
+    for (int i = firstNotColoredVertex; i < V; ++i)
     {
       const auto & v = verts[i];
       if (v.color < 0 && v.numProhibitedColors >= maxColors)
