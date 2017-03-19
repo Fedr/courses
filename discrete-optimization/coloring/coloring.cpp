@@ -7,32 +7,12 @@
 
 // number of vertices
 int V = 0;
-// number of edges
-int E = 0;
 
-struct Edge
-{
-  int v0 = 0;
-  int v1 = 1;
-  int other(int v) const { return (v == v0) ? v1 : v0;  }
-};
-std::vector<Edge> edges;
-
-// computes the number of incident edges to a vertex
-int degree(int v)
-{
-  int d = 0;
-  for (const auto & e : edges)
-  {
-    if (e.v0 == v || e.v1 == v)
-      ++d;
-  }
-  return d;
-}
+// store for each vertex the list of adjacent vertices
+std::vector<std::vector<int>> adjacency;
 
 struct Vertex
 {
-  int degree = 0;
   int color = -1; // not assigned yet
   int notColoredNeis = 0;
   std::vector<bool> prohibitedColors;
@@ -69,23 +49,20 @@ void Coloring::assignColor(int vert, int color)
   v.color = color;
   v.prohibitedColors.clear(); //save space
   v.numProhibitedColors = -1; //invalid now
-  for (const auto & e : edges)
+  for (int nei : adjacency[vert])
   {
-    if (e.v0 == vert || e.v1 == vert)
+    auto & vo = verts[nei];
+    if (vo.color < 0)
     {
-      auto & vo = verts[e.other(vert)];
-      if (vo.color < 0)
+      if (vo.prohibitedColors.size() <= color)
       {
-        if (vo.prohibitedColors.size() <= color)
-        {
-          vo.prohibitedColors.resize(color + 1);
-        }
-        if (!vo.prohibitedColors[color])
-          ++vo.numProhibitedColors;
-        vo.prohibitedColors[color] = true;
+        vo.prohibitedColors.resize(color + 1);
       }
-      --vo.notColoredNeis;
+      if (!vo.prohibitedColors[color])
+        ++vo.numProhibitedColors;
+      vo.prohibitedColors[color] = true;
     }
+    --vo.notColoredNeis;
   }
   if (vert == vertsSorted[firstNotColoredVertex])
   {
@@ -148,15 +125,11 @@ bool Coloring::assignFirstNotProhibitedColor(int maxColors, int vert)
 int Coloring::extendClique(const std::set<int> & clique) const
 {
   std::vector<int> neisInClique(V);
-  for (const auto & e : edges)
+  for (int i : clique)
   {
-    if (clique.find(e.v0) != clique.end())
+    for (int nei : adjacency[i])
     {
-      ++neisInClique[e.v1];
-    }
-    if (clique.find(e.v1) != clique.end())
-    {
-      ++neisInClique[e.v0];
+      ++neisInClique[nei];
     }
   }
 
@@ -173,7 +146,7 @@ int Coloring::extendClique(const std::set<int> & clique) const
   std::sort(neis.begin(), neis.end(),
     [this](int a, int b)
   {
-    return verts[a].degree < verts[b].degree;
+    return adjacency[a].size() < adjacency[b].size();
   });
 
   return neis.back();
@@ -277,13 +250,15 @@ int main(int argc, char * argv[])
     return 1;
 
   std::ifstream f(argv[1]);
+  int E = 0;
   f >> V >> E;
-  edges.reserve(E);
+  adjacency.resize(V);
   for (int i = 0; i < E; ++i)
   {
-    Edge edge;
-    f >> edge.v0 >> edge.v1;
-    edges.push_back(edge);
+    int v0 = -1, v1 = -1;
+    f >> v0 >> v1;
+    adjacency[v0].push_back(v1);
+    adjacency[v1].push_back(v0);
   }
 
   Coloring c;
@@ -292,14 +267,14 @@ int main(int argc, char * argv[])
   for (int i = 0; i < V; ++i)
   {
     Vertex v;
-    v.degree = v.notColoredNeis = degree(i);
+    v.notColoredNeis = (int)adjacency[i].size();
     c.verts.push_back(v);
     vertsSorted.push_back(i);
   }
   std::sort(vertsSorted.begin(), vertsSorted.end(),
-    [&c](int a, int b)
+    [](int a, int b)
     {
-      return c.verts[a].degree > c.verts[b].degree;
+      return adjacency[a].size() > adjacency[b].size();
     }
   );
 
