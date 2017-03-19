@@ -47,7 +47,7 @@ struct Coloring
 {
   std::vector<Vertex> verts;
   int colorsUsed = 0;
-  int firstNotColoredVertex = 0;
+  int firstNotColoredVertex = 0; // in vertSorted order
 
   int extendClique(const std::set<int> & clique) const;
   int solve(); //no limit
@@ -87,11 +87,13 @@ void Coloring::assignColor(int vert, int color)
       --vo.notColoredNeis;
     }
   }
-  if (vert == firstNotColoredVertex)
+  if (vert == vertsSorted[firstNotColoredVertex])
   {
-    for (++firstNotColoredVertex; firstNotColoredVertex < verts.size() && verts[firstNotColoredVertex].color >= 0; ++firstNotColoredVertex)
+    for (++firstNotColoredVertex; firstNotColoredVertex < verts.size(); ++firstNotColoredVertex)
     {
-      //nothing here
+      int vert = vertsSorted[firstNotColoredVertex];
+      if (verts[vert].color < 0)
+        break;
     }
   }
 }
@@ -238,17 +240,18 @@ bool Coloring::assignColorsNoVariants(int maxColors)
     bool changed = false;
     for (int i = firstNotColoredVertex; i < V; ++i)
     {
-      const auto & v = verts[i];
+      int vert = vertsSorted[i];
+      const auto & v = verts[vert];
       if (v.color < 0 && v.numProhibitedColors >= maxColors)
         return false;
       if (v.color < 0 && v.notColoredNeis == 0)
       {
-        assignFirstNotProhibitedColor(maxColors, i);
+        assignFirstNotProhibitedColor(maxColors, vert);
         // do not mark as changed, since no other vertex is affected
       }
       else if (v.color < 0 && v.numProhibitedColors + 1 == maxColors)
       {
-        assignFirstNotProhibitedColor(maxColors, i);
+        assignFirstNotProhibitedColor(maxColors, vert);
         changed = true;
       }
     }
