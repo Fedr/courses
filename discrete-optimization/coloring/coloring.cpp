@@ -29,7 +29,6 @@ struct Coloring
   int colorsUsed = 0;
   int firstNotColoredVertex = 0; // in vertSorted order
 
-  int extendClique(const std::set<int> & clique) const;
   int solve(); //no limit
   int solve(int maxColors);
   int numColors() const;
@@ -144,36 +143,6 @@ bool Coloring::assignFirstNotProhibitedColor(int maxColors, int vert)
   }
   assignColor(vert, color);
   return true;
-}
-
-int Coloring::extendClique(const std::set<int> & clique) const
-{
-  std::vector<int> neisInClique(V);
-  for (int i : clique)
-  {
-    for (int nei : adjacency[i])
-    {
-      ++neisInClique[nei];
-    }
-  }
-
-  std::vector<int> neis;
-  for (int i = 0; i < V; ++i)
-  {
-    if (neisInClique[i] == clique.size())
-      neis.push_back(i);
-  }
-  if (neis.empty())
-    return -1;
-
-  //sort neis by degree
-  std::sort(neis.begin(), neis.end(),
-    [this](int a, int b)
-  {
-    return adjacency[a].size() < adjacency[b].size();
-  });
-
-  return neis.back();
 }
 
 int Coloring::solve()
@@ -310,23 +279,6 @@ int main(int argc, char * argv[])
       return adjacency[a].size() > adjacency[b].size();
     }
   );
-
-  //start assigning colors 
-  c.assignColor(vertsSorted[0], 0);
-  if (V != 250) //hack
-  {
-    std::set<int> clique;
-    clique.insert(vertsSorted[0]);
-    for (;;)
-    {
-      int v = c.extendClique(clique);
-      if (v < 0)
-        break;
-      c.assignColor(v, (int)clique.size());
-      clique.insert(v);
-    }
-    int cmin = (int)clique.size();
-  }
 
   auto best = c;
   int cbest = best.solve();
