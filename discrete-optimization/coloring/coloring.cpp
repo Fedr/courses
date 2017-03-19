@@ -35,6 +35,8 @@ struct Coloring
   int numColors() const;
   void assignColor(int vert, int color);
   std::vector<int> getColorVariants(int maxColors, int vert) const;
+  // returns a color from the list proposed, which is already prohibited in all not-colored neighbours
+  int getColorProhibitedByAllNeis(int vert, const std::vector<int> & vars) const;
   bool assignFirstNotProhibitedColor(int maxColors, int vert);
   bool assignColorsNoVariants(int maxColors);
   void print() const;
@@ -96,6 +98,28 @@ std::vector<int> Coloring::getColorVariants(int maxColors, int vert) const
 
   assert (res.size() == maxColors - v.numProhibitedColors);
   return res;
+}
+
+int Coloring::getColorProhibitedByAllNeis(int vert, const std::vector<int> & vars) const
+{
+  for (int color : vars)
+  {
+    bool colorAllowed = false;
+    for (int nei : adjacency[vert])
+    {
+      const auto & vnei = verts[nei];
+      if (vnei.color >= 0)
+        continue;
+      if (vnei.prohibitedColors.size() <= color || !vnei.prohibitedColors[color])
+      {
+        colorAllowed = true;
+        break;
+      }
+    }
+    if (!colorAllowed)
+      return color;
+  }
+  return -1;
 }
 
 bool Coloring::assignFirstNotProhibitedColor(int maxColors, int vert)
@@ -180,6 +204,15 @@ int Coloring::solve(int maxColors)
     if (vars.size() == 1)
     {
       assignColor(vert, vars.front());
+      if (!assignColorsNoVariants(maxColors))
+        return -1;
+      continue;
+    }
+
+    int col = getColorProhibitedByAllNeis(vert, vars);
+    if (col >= 0)
+    {
+      assignColor(vert, col);
       if (!assignColorsNoVariants(maxColors))
         return -1;
       continue;
@@ -303,15 +336,15 @@ int main(int argc, char * argv[])
   if (V == 50)
     target = 6;
   else if (V == 70)
-    target = 17;
+    target = 17; // long wait
   else if (V == 100)
     target = 16;
   else if (V == 250)
-    target = 93; // optimal 78 :(
+    target = 90; // optimal 78 :(
   else if (V == 500)
     target = 16;
   else if (V == 1000)
-    target = 122; //optimal 100 :(
+    target = 118; //optimal 100 :(
 
   auto sol1 = c;
   int c1 = sol1.solve(target);
