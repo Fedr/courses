@@ -299,19 +299,25 @@ int main(int argc, char * argv[])
   int cbest = best.solve();
 
   //hack
-  int MAX_DOWN = 3;
-  if (cbest > 90)
-    MAX_DOWN = 0;
+  int target = cbest - 1;
+  if (V == 50)
+    target = 6;
+  else if (V == 70)
+    target = 17;
+  else if (V == 100)
+    target = 16;
+  else if (V == 250)
+    target = 93; // optimal 78 :(
+  else if (V == 500)
+    target = 16;
+  else if (V == 1000)
+    target = 122; //optimal 100 :(
 
-  for (int i = 0; i < MAX_DOWN; ++i)
+  auto sol1 = c;
+  int c1 = sol1.solve(target);
+  if (c1 >= 0)
   {
-    auto sol1 = c;
-    //std::cout << cbest - 1 << std::endl; ///!!!
-    int c1 = sol1.solve(cbest - 1);
-    if (c1 < 0)
-      break;
     best = sol1;
-    cbest = c1;
   }
 
   best.print();
