@@ -19,10 +19,12 @@ struct Vertex
   std::vector<bool> prohibitedColors;
   int numProhibitedColors = 0;
 };
-//std::vector<Vertex> verts;
 
 // id's of vertices sorted by their degree in descending order
 std::vector<int> vertsSorted;
+
+// how many different branches have been considered before finding a solution
+int branches = 1;
 
 struct Coloring
 {
@@ -192,7 +194,13 @@ int Coloring::solve(int maxColors)
     for (int j = 0; j < vars.size(); ++j)
     {
       if (j != 0)
-        *this = src;
+      {
+        ++branches;
+        if (j+1 == vars.size())
+          *this = std::move(src);
+        else
+          *this = src;
+      }
       assignColor(vert, vars[j]);
       int s = solve(maxColors);
       if (s >= 0)
@@ -305,6 +313,7 @@ int main(int argc, char * argv[])
   auto finishTime = std::chrono::high_resolution_clock::now();
   using FpMilliseconds =
     std::chrono::duration<float, std::chrono::milliseconds::period>;
+  std::cerr << " branches: " << branches << "\n";
   std::cerr << " duration: " << FpMilliseconds(finishTime - startTime).count() << "ms\n";
 
   if (c1 >= 0)
