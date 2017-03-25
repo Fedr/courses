@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <assert.h>
+#include <chrono>
 #include <iostream>
 #include <set>
 #include <vector>
@@ -299,7 +300,13 @@ int main(int argc, char * argv[])
     target = 118; //optimal 100 :(
 
   auto sol1 = c;
+  auto startTime = std::chrono::high_resolution_clock::now();
   int c1 = sol1.solve(target);
+  auto finishTime = std::chrono::high_resolution_clock::now();
+  using FpMilliseconds =
+    std::chrono::duration<float, std::chrono::milliseconds::period>;
+  std::cerr << " duration: " << FpMilliseconds(finishTime - startTime).count() << "ms\n";
+
   if (c1 >= 0)
   {
     best = sol1;
