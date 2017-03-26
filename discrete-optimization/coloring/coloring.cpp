@@ -35,7 +35,7 @@ struct Coloring
   int solve(); //no limit
   int solve(int maxColors);
   int numColors() const;
-  void assignColor(int vert, int color, int maxColors);
+  bool assignColor(int vert, int color, int maxColors);
   std::vector<int> getColorVariants(int maxColors, int vert) const;
   // returns a color from the list proposed, which is already prohibited in all not-colored neighbours
   int getColorProhibitedByAllNeis(int vert, const std::vector<int> & vars) const;
@@ -44,7 +44,7 @@ struct Coloring
   void print() const;
 };
 
-void Coloring::assignColor(int vert, int color, int maxColors)
+bool Coloring::assignColor(int vert, int color, int maxColors)
 {
   colorsUsed = std::max(colorsUsed, color+1);
   auto & v = verts[vert];
@@ -63,8 +63,11 @@ void Coloring::assignColor(int vert, int color, int maxColors)
         vo.prohibitedColors.resize(maxColors);
       }
       if (!vo.prohibitedColors[color])
-        ++vo.numProhibitedColors;
-      vo.prohibitedColors[color] = true;
+      {
+        if (++vo.numProhibitedColors >= maxColors)
+          return false;
+        vo.prohibitedColors[color] = true;
+      }
     }
     --vo.notColoredNeis;
   }
@@ -77,6 +80,7 @@ void Coloring::assignColor(int vert, int color, int maxColors)
         break;
     }
   }
+  return true;
 }
 
 std::vector<int> Coloring::getColorVariants(int maxColors, int vert) const
@@ -145,8 +149,7 @@ bool Coloring::assignFirstNotProhibitedColor(int maxColors, int vert)
     if (color >= maxColors)
       return false;
   }
-  assignColor(vert, color, maxColors);
-  return true;
+  return assignColor(vert, color, maxColors);
 }
 
 int Coloring::solve()
@@ -176,8 +179,7 @@ int Coloring::solve(int maxColors)
 
     if (vars.size() == 1)
     {
-      assignColor(vert, vars.front(), maxColors);
-      if (!assignColorsNoVariants(maxColors))
+      if (!assignColor(vert, vars.front(), maxColors) || !assignColorsNoVariants(maxColors))
         return -1;
       continue;
     }
@@ -185,8 +187,7 @@ int Coloring::solve(int maxColors)
     int col = getColorProhibitedByAllNeis(vert, vars);
     if (col >= 0)
     {
-      assignColor(vert, col, maxColors);
-      if (!assignColorsNoVariants(maxColors))
+      if (!assignColor(vert, col, maxColors) || !assignColorsNoVariants(maxColors))
         return -1;
       continue;
     }
@@ -202,7 +203,8 @@ int Coloring::solve(int maxColors)
         else
           *this = src;
       }
-      assignColor(vert, vars[j], maxColors);
+      if (!assignColor(vert, vars[j], maxColors))
+        continue;
       int s = solve(maxColors);
       if (s >= 0)
         return s;
@@ -227,16 +229,17 @@ bool Coloring::assignColorsNoVariants(int maxColors)
     {
       int vert = vertsSorted[i];
       const auto & v = verts[vert];
-      if (v.color < 0 && v.numProhibitedColors >= maxColors)
-        return false;
+      assert(v.color >= 0 || v.numProhibitedColors < maxColors);
       if (v.color < 0 && v.notColoredNeis == 0)
       {
-        assignFirstNotProhibitedColor(maxColors, vert);
+        if (!assignFirstNotProhibitedColor(maxColors, vert))
+          return false;
         // do not mark as changed, since no other vertex is affected
       }
       else if (v.color < 0 && v.numProhibitedColors + 1 == maxColors)
       {
-        assignFirstNotProhibitedColor(maxColors, vert);
+        if (!assignFirstNotProhibitedColor(maxColors, vert))
+          return false;
         changed = true;
       }
     }
