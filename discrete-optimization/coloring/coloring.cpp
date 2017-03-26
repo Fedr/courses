@@ -307,7 +307,7 @@ int main(int argc, char * argv[])
   else if (V == 250)
     target = 90; // optimal 78 :(
   else if (V == 500)
-    target = 16;
+    target = 15;
   else if (V == 1000)
     target = 118; //optimal 100 :(
 
