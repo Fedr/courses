@@ -43,6 +43,7 @@ struct Coloring
   int getColorProhibitedByAllNeis(int vert, const std::vector<int> & vars) const;
   bool assignFirstNotProhibitedColor(int maxColors, int vert);
   bool assignColorsNoVariants(int maxColors);
+  bool assignColorsNoVariantsToNeis(int vert, int maxColors);
   void print() const;
 };
 
@@ -185,6 +186,8 @@ int Coloring::solve(int maxColors)
     int vert = vertsSorted[i];
     if (verts[vert].color >= 0)
       continue;
+    if (!assignColorsNoVariantsToNeis(vert, maxColors))
+      return -1;
     auto vars = getColorVariants(std::min(colorsUsed+1, maxColors), vert);
     assert(vars.size() > 0);
 
@@ -233,6 +236,9 @@ int Coloring::numColors() const
 
 bool Coloring::assignColorsNoVariants(int maxColors)
 {
+  if (colorsUsed + 1 < maxColors)
+    return true;
+
   for (int m = 0;; ++m)
   {
     bool changed = false;
@@ -251,6 +257,33 @@ bool Coloring::assignColorsNoVariants(int maxColors)
     }
     if (!changed)
       break;
+  }
+  return true;
+}
+
+bool Coloring::assignColorsNoVariantsToNeis(int vert, int maxColors)
+{
+  for (int m = 0;; ++m)
+  {
+    if (colorsUsed + 1 >= maxColors)
+      return true;
+    bool changed = false;
+    for (int nei : adjacency[vert])
+    {
+      const auto & v = verts[nei];
+      assert(v.color >= 0 || v.numProhibitedColors < maxColors);
+      assert(v.color >= 0 || v.notColoredNeis > 0);
+      if (v.color < 0 && v.numProhibitedColors + 1 == std::min(colorsUsed + 1, maxColors))
+      {
+        if (!assignFirstNotProhibitedColor(maxColors, nei))
+          return false;
+        changed = true;
+      }
+    }
+    if (!changed)
+      break;
+    if (!assignColorsNoVariants(maxColors))
+      return false;
   }
   return true;
 }
