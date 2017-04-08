@@ -29,8 +29,10 @@ public:
   Path();
   double value() const;
   void print() const;
+  bool twoOptAll();
 private:
   std::vector<int> order_;
+  bool twoOpt_(int i);
 };
 
 Path::Path()
@@ -41,6 +43,43 @@ Path::Path()
     order_[i] = i;
   }
   std::random_shuffle(order_.begin(), order_.end());
+}
+
+bool Path::twoOpt_(int i)
+{
+  std::rotate(order_.begin(), order_.begin() + i + 1, order_.end());
+  double iOld = dist(points[order_.back()], points[order_.front()]);
+  double best = -DBL_MAX;
+  int bestJ = -1;
+  for (int j = 0; j + 1 < order_.size(); ++j)
+  {
+    double jOld = dist(points[order_[j]], points[order_[j + 1]]);
+    double iNew = dist(points[order_.back()], points[order_[j]]);
+    double jNew = dist(points[order_.front()], points[order_[j+1]]);
+    double v = iOld + jOld - iNew - jNew;
+    if (v > best)
+    {
+      best = v;
+      bestJ = j;
+    }
+  }
+  if (best <= 0)
+    return false;
+  std::reverse(order_.begin(), order_.begin() + bestJ + 1);
+  return true;
+}
+
+bool Path::twoOptAll()
+{
+  auto v0 = value();
+  bool res = false;
+  for (int i = 0; i < N; ++i)
+  {
+    if (twoOpt_(0))
+      res = true;
+    auto v = value();
+  }
+  return res;
 }
 
 double Path::value() const
@@ -76,10 +115,16 @@ int main(int argc, char * argv[])
 
   Path best;
   double bestValue = best.value();
-  int A = 10000;
+  int A = 50000 / N;
+  int B = 30;
   for (int i = 0; i < A; ++i)
   {
     Path p;
+    for (int j = 0; j < B; ++j)
+    {
+      if (!p.twoOptAll())
+        break;
+    }
     double pValue = p.value();
     if (pValue < bestValue)
     {
