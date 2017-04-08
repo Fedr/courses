@@ -5,6 +5,7 @@
 #include <set>
 #include <vector>
 #include <fstream>
+#include <random>
 
 int N = 0;
 
@@ -29,10 +30,9 @@ public:
   Path();
   double value() const;
   void print() const;
-  bool twoOptAll();
+  int twoOpt(int i, int j);
 private:
   std::vector<int> order_;
-  bool twoOpt_(int i);
 };
 
 Path::Path()
@@ -45,41 +45,55 @@ Path::Path()
   std::random_shuffle(order_.begin(), order_.end());
 }
 
-bool Path::twoOpt_(int i)
+// attempts to reverse the order of traversal in [i+1, j] or in [j+1,i] (whatever is smaller)
+// returns the number of changed elements or 0 if the reverse is rejected
+int Path::twoOpt(int i, int j)
 {
-  std::rotate(order_.begin(), order_.begin() + i + 1, order_.end());
-  double iOld = dist(points[order_.back()], points[order_.front()]);
-  double best = -DBL_MAX;
-  int bestJ = -1;
-  for (int j = 0; j + 1 < order_.size(); ++j)
+  int i1 = i + 1 < N ? i + 1 : 0;
+  int j1 = j + 1 < N ? j + 1 : 0;
+  int n = j - i;
+  if (n < 0)
+    n += N;
+  assert(n >= 0 && n <= N);
+  int nb = N - n;
+  if (nb < n)
   {
-    double jOld = dist(points[order_[j]], points[order_[j + 1]]);
-    double iNew = dist(points[order_.back()], points[order_[j]]);
-    double jNew = dist(points[order_.front()], points[order_[j+1]]);
-    double v = iOld + jOld - iNew - jNew;
-    if (v > best)
-    {
-      best = v;
-      bestJ = j;
-    }
+    std::swap(i, j);
+    std::swap(i1, j1);
+    std::swap(n, nb);
   }
-  if (best <= 0)
-    return false;
-  std::reverse(order_.begin(), order_.begin() + bestJ + 1);
-  return true;
-}
+  if (n <= 1)
+    return 0;
 
-bool Path::twoOptAll()
-{
-  auto v0 = value();
-  bool res = false;
-  for (int i = 0; i < N; ++i)
+  double iOld = dist(points[order_[i]], points[order_[i1]]);
+  double jOld = dist(points[order_[j]], points[order_[j1]]);
+  double iNew = dist(points[order_[i]], points[order_[j]]);
+  double jNew = dist(points[order_[i1]], points[order_[j1]]);
+  if (iOld + jOld - iNew - jNew <= 0)
+    return 0;
+
+  if (i <= j)
   {
-    if (twoOpt_(0))
-      res = true;
-    auto v = value();
+    std::reverse(order_.begin() + i + 1, order_.begin() + j + 1);
   }
-  return res;
+  else if (i + j + 2 < N)
+  {
+    for (int k = 0; k < j + 1; ++k)
+    {
+      std::swap(order_[i + 1 + k], order_[j - k]);
+    }
+    std::reverse(order_.begin() + i + 2 + j, order_.end());
+  }
+  else
+  {
+    for (int k = 0; i + 1 + k < N; ++k) // k_max = N - i - 2
+    {
+      std::swap(order_[i + 1 + k], order_[j - k]);
+    }
+    std::reverse(order_.begin(), order_.begin() + (j + i + 2 - N));
+  }
+
+  return n;
 }
 
 double Path::value() const
@@ -113,17 +127,23 @@ int main(int argc, char * argv[])
     f >> points[i].x >> points[i].y;
   }
 
+  std::default_random_engine re;
+  std::uniform_int_distribution<> dis(0, N-1);
+
   Path best;
   double bestValue = best.value();
-  int A = 50000 / N;
-  int B = 30;
-  for (int i = 0; i < A; ++i)
+  int A = 1000;
+  int MAX_CHANGES = 100000;
+  int MAX_TRIES = 100000;
+  for (int iter = 0; iter < A; ++iter)
   {
     Path p;
-    for (int j = 0; j < B; ++j)
+    int changes = 0;
+    int tries = 0;
+    while (changes < MAX_CHANGES && tries < MAX_TRIES)
     {
-      if (!p.twoOptAll())
-        break;
+      changes += p.twoOpt(dis(re), dis(re));
+      ++tries;
     }
     double pValue = p.value();
     if (pValue < bestValue)
