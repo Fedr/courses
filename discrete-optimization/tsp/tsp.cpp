@@ -132,8 +132,8 @@ int main(int argc, char * argv[])
 
   Path best;
   double bestValue = best.value();
-  int A = 1000;
-  int MAX_CHANGES = 100000;
+  int A = 3000;
+  int MAX_CHANGES = 1000000;
   int MAX_TRIES = 100000;
   for (int iter = 0; iter < A; ++iter)
   {
