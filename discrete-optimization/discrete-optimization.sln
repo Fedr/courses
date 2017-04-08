@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "knapsack", "knapsack\knapsa
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "coloring", "coloring\coloring.vcxproj", "{C808B260-085D-42D5-A905-33C46F4B1CB3}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tsp", "tsp\tsp.vcxproj", "{5D2F6495-BEF0-4FE6-B461-DE310E869F48}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,10 @@ Global
 		{C808B260-085D-42D5-A905-33C46F4B1CB3}.Debug|x64.Build.0 = Debug|x64
 		{C808B260-085D-42D5-A905-33C46F4B1CB3}.Release|x64.ActiveCfg = Release|x64
 		{C808B260-085D-42D5-A905-33C46F4B1CB3}.Release|x64.Build.0 = Release|x64
+		{5D2F6495-BEF0-4FE6-B461-DE310E869F48}.Debug|x64.ActiveCfg = Debug|x64
+		{5D2F6495-BEF0-4FE6-B461-DE310E869F48}.Debug|x64.Build.0 = Debug|x64
+		{5D2F6495-BEF0-4FE6-B461-DE310E869F48}.Release|x64.ActiveCfg = Release|x64
+		{5D2F6495-BEF0-4FE6-B461-DE310E869F48}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
