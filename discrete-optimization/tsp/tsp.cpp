@@ -9,6 +9,8 @@
 
 int N = 0;
 
+std::default_random_engine re;
+
 struct Point
 {
   double x = 0, y = 0;
@@ -37,8 +39,10 @@ public:
   Path(int v0);
   double value() const;
   void print() const;
-  int twoOpt(int i, int j);
-  int twoOpt(int i);
+  int twoOpt(int i, int j, double T, double prob);
+  int twoOpt(int i, double T, double prob);
+  void manyTwoOps(int tries, double T);
+  void fullOptimize(double T);
 private:
   std::vector<int> order_;
 };
@@ -80,7 +84,7 @@ Path::Path(int v0)
 
 // attempts to reverse the order of traversal in [i+1, j] or in [j+1,i] (whatever is smaller)
 // returns the number of changed elements or 0 if the reverse is rejected
-int Path::twoOpt(int i, int j)
+int Path::twoOpt(int i, int j, double T, double prob)
 {
   int i1 = i + 1 < N ? i + 1 : 0;
   int j1 = j + 1 < N ? j + 1 : 0;
@@ -102,8 +106,14 @@ int Path::twoOpt(int i, int j)
   double jOld = dist(points[order_[j]], points[order_[j1]]);
   double iNew = dist(points[order_[i]], points[order_[j]]);
   double jNew = dist(points[order_[i1]], points[order_[j1]]);
-  if (iOld + jOld - iNew - jNew <= 0)
-    return 0;
+  double delta = iOld + jOld - iNew - jNew;
+  if (delta <= 0)
+  {
+    if (T <= 0)
+      return 0;
+    if (exp(delta / T) < prob)
+      return 0;
+  }
 
   if (i <= j)
   {
@@ -129,17 +139,42 @@ int Path::twoOpt(int i, int j)
   return n;
 }
 
-int Path::twoOpt(int i)
+void Path::manyTwoOps(int tries, double T)
+{
+  std::uniform_int_distribution<> dis(0, N - 1);
+  std::uniform_real_distribution<> probDist(0, 1);
+  for (int i = 0; i < tries; ++i)
+  {
+    twoOpt(dis(re), dis(re), T, probDist(re));
+  }
+}
+
+void Path::fullOptimize(double T)
+{
+  int LEVELS = 6;
+  int TRIES = 50000;
+  for (int l = 0; l < LEVELS; ++l)
+  {
+    if (l + 1 == LEVELS)
+      T = 0;
+    else if (l > 0)
+      T /= 1.5;
+    manyTwoOps(TRIES, T);
+    TRIES *= 2;
+  }
+}
+
+int Path::twoOpt(int i, double T, double prob)
 {
   for (int j = i + 2; j < N; ++j)
   {
-    int n = twoOpt(i, j);
+    int n = twoOpt(i, j, T, prob);
     if (n > 0)
       return n;
   }
   for (int j = 0; j + 1 < i; ++j)
   {
-    int n = twoOpt(i, j);
+    int n = twoOpt(i, j, T, prob);
     if (n > 0)
       return n;
   }
@@ -177,33 +212,17 @@ int main(int argc, char * argv[])
     f >> points[i].x >> points[i].y;
   }
 
-  std::default_random_engine re;
-  std::uniform_int_distribution<> dis(0, N-1);
-
   Path best;
   double bestValue = best.value();
-  int A = 6000000 / N;
-  int MAX_CHANGES = 100000;
-  int MAX_TRIES = 100;
+
+  int A = 1000;
+  Path p;
   for (int iter = 0; iter < A; ++iter)
   {
-    Path p;
-    if (iter < N)
-      p = Path(iter);
-    int changes = 0;
-    int tries = 0;
-    while (changes < MAX_CHANGES && tries < MAX_TRIES)
-    {
-      int n = p.twoOpt(dis(re));
-      if (n > 0)
-      {
-        changes += n;
-        tries = 0;
-      }
-      else
-        ++tries;
-    }
+    double T = p.value() / (4*N);
+    p.fullOptimize(T);
     double pValue = p.value();
+    std::cerr << "iter=" << iter << "\tbest=" << bestValue << "\tlast=" << pValue << std::endl;
     if (pValue < bestValue)
     {
       best = p;
