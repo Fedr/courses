@@ -219,7 +219,7 @@ int main(int argc, char * argv[])
   Path p;
   for (int iter = 0; iter < A; ++iter)
   {
-    double T = p.value() / (4*N);
+    double T = p.value() / (3*N);
     p.fullOptimize(T);
     double pValue = p.value();
     std::cerr << "iter=" << iter << "\tbest=" << bestValue << "\tlast=" << pValue << std::endl;
