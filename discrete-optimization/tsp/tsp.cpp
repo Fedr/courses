@@ -215,18 +215,22 @@ int main(int argc, char * argv[])
   Path best;
   double bestValue = best.value();
 
-  int A = 1000;
+  std::ofstream log("tsp.log", std::ofstream::app);
+
+  int A = std::min(50000, 10*N);
   Path p;
+  int bestIter = -1;
   for (int iter = 0; iter < A; ++iter)
   {
-    double T = p.value() / (3*N);
+    double T = p.value() / (2*N);
     p.fullOptimize(T);
     double pValue = p.value();
-    std::cerr << "iter=" << iter << "\tbest=" << bestValue << "\tlast=" << pValue << std::endl;
+    log << "iter=" << iter << "\tbest=" << bestValue << "\tlast=" << pValue << std::endl;
     if (pValue < bestValue)
     {
       best = p;
       bestValue = pValue;
+      bestIter = iter;
     }
   }
 
@@ -234,6 +238,10 @@ int main(int argc, char * argv[])
   std::cout << bestValue << " 0\n";
   best.print();
   std::cout << std::endl;
+
+  std::ofstream res("best.txt", std::ofstream::app);
+  res.precision(12);
+  res << "N=" << N << "\tbestIter=" << bestIter << "\tmaxIter=" << A << "\tbest=" << bestValue << '\n';
 
   return 0;
 }

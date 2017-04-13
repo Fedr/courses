@@ -1,0 +1,6 @@
+N=51	bestIter=27	maxIter=510	best=428.871756392
+N=100	bestIter=165	maxIter=1000	best=20750.7625037
+N=200	bestIter=310	maxIter=2000	best=29463.1301576
+N=574	bestIter=5504	maxIter=5740	best=37230.9265656
+N=1889	bestIter=11144	maxIter=18890	best=323481.059305
+N=33810	bestIter=45873	maxIter=50000	best=70897406.8025
