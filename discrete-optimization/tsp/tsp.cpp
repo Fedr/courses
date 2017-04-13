@@ -225,7 +225,11 @@ int main(int argc, char * argv[])
     double T = p.value() / (2*N);
     p.fullOptimize(T);
     double pValue = p.value();
-    log << "iter=" << iter << "\tbest=" << bestValue << "\tlast=" << pValue << std::endl;
+    log << "iter=" << iter 
+        << "\tlast=" << pValue 
+        << "\tbestIter=" << bestIter
+        << "\tbest=" << bestValue 
+        << std::endl;
     if (pValue < bestValue)
     {
       best = p;
