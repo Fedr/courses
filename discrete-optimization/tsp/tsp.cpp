@@ -151,8 +151,8 @@ void Path::manyTwoOps(int tries, double T)
 
 void Path::fullOptimize(double T)
 {
-  int LEVELS = 6;
-  int TRIES = 50000;
+  int LEVELS = 7;
+  int TRIES = 25000;
   for (int l = 0; l < LEVELS; ++l)
   {
     if (l + 1 == LEVELS)
@@ -222,7 +222,7 @@ int main(int argc, char * argv[])
   int bestIter = -1;
   for (int iter = 0; iter < A; ++iter)
   {
-    double T = p.value() / (2*N);
+    double T = 1.5 * p.value() / (2*N);
     p.fullOptimize(T);
     double pValue = p.value();
     log << "iter=" << iter 
