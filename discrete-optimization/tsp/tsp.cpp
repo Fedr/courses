@@ -36,12 +36,10 @@ class Path
 public:
   // creates random path
   Path();
-  // creates greedy path with given start vertex
-  Path(int v0);
   double value() const;
   void print(std::ostream & os) const;
   int twoOpt(int i, int j, double T, double prob);
-  int twoOpt(int i, double T, double prob);
+  void allShortTwoOpts(int maxDist);
   void manyTwoOps(int tries, double T);
   void fullOptimize(double T);
 private:
@@ -56,31 +54,6 @@ Path::Path()
     order_[i] = i;
   }
   std::random_shuffle(order_.begin(), order_.end());
-}
-
-Path::Path(int v0)
-{
-  order_.resize(N);
-  for (int i = 0; i < N; ++i)
-  {
-    order_[i] = i;
-  }
-
-  for (int i = 0; i + 1 < N; ++i)
-  {
-    double minDist2 = dist2(points[order_[i]], points[order_[i + 1]]);
-    int minJ = i + 1;
-    for (int j = i + 2; j < N; ++j)
-    {
-      double d2 = dist2(points[order_[i]], points[order_[j]]);
-      if (d2 < minDist2)
-      {
-        minDist2 = d2;
-        minJ = j;
-      }
-    }
-    std::swap(order_[i + 1], order_[minJ]);
-  }
 }
 
 // attempts to reverse the order of traversal in [i+1, j] or in [j+1,i] (whatever is smaller)
@@ -165,21 +138,15 @@ void Path::fullOptimize(double T)
   }
 }
 
-int Path::twoOpt(int i, double T, double prob)
+void Path::allShortTwoOpts(int maxDist)
 {
-  for (int j = i + 2; j < N; ++j)
+  for (int i = 0; i < N; ++i)
   {
-    int n = twoOpt(i, j, T, prob);
-    if (n > 0)
-      return n;
+    for (int j = 2; j <= maxDist; ++j)
+    {
+      twoOpt(i, (i + j) % N, 0, 0);
+    }
   }
-  for (int j = 0; j + 1 < i; ++j)
-  {
-    int n = twoOpt(i, j, T, prob);
-    if (n > 0)
-      return n;
-  }
-  return 0;
 }
 
 double Path::value() const
@@ -227,6 +194,7 @@ int main(int argc, char * argv[])
   {
     double T = 1.5 * p.value() / (2*N);
     p.fullOptimize(T);
+    p.allShortTwoOpts(5);
     double pValue = p.value();
     log << "iter=" << iter 
         << "\tlast=" << pValue 
