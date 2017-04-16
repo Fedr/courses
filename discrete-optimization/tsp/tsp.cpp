@@ -5,6 +5,7 @@
 #include <set>
 #include <vector>
 #include <fstream>
+#include <sstream>
 #include <random>
 
 int N = 0;
@@ -38,7 +39,7 @@ public:
   // creates greedy path with given start vertex
   Path(int v0);
   double value() const;
-  void print() const;
+  void print(std::ostream & os) const;
   int twoOpt(int i, int j, double T, double prob);
   int twoOpt(int i, double T, double prob);
   void manyTwoOps(int tries, double T);
@@ -191,11 +192,13 @@ double Path::value() const
   return res;
 }
 
-void Path::print() const
+void Path::print(std::ostream & os) const
 {
+  os << value() << " 0\n";
+
   for (int i = 0; i < N; ++i)
   {
-    std::cout << order_[i] << ' ';
+    os << order_[i] << ' ';
   }
 }
 
@@ -239,13 +242,18 @@ int main(int argc, char * argv[])
   }
 
   std::cout.precision(12);
-  std::cout << bestValue << " 0\n";
-  best.print();
+  best.print(std::cout);
   std::cout << std::endl;
 
   std::ofstream res("best.txt", std::ofstream::app);
   res.precision(12);
   res << "N=" << N << "\tbestIter=" << bestIter << "\tmaxIter=" << A << "\tbest=" << bestValue << '\n';
+
+  std::ostringstream os;
+  os << N << ".sol";
+  std::ofstream sol(os.str());
+  sol.precision(12);
+  best.print(sol);
 
   return 0;
 }
