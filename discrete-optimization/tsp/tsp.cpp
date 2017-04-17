@@ -194,7 +194,7 @@ int main(int argc, char * argv[])
   {
     double T = 1.5 * p.value() / (2*N);
     p.fullOptimize(T);
-    p.allShortTwoOpts(5);
+    p.allShortTwoOpts(50);
     double pValue = p.value();
     log << "iter=" << iter 
         << "\tlast=" << pValue 
