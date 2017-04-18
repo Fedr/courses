@@ -38,6 +38,7 @@ public:
   Path();
   double value() const;
   void print(std::ostream & os) const;
+  void read(std::istream & is);
   int twoOpt(int i, int j, double T, double prob);
   void allShortTwoOpts(int maxDist);
   void manyTwoOps(int tries, double T);
@@ -169,6 +170,18 @@ void Path::print(std::ostream & os) const
   }
 }
 
+void Path::read(std::istream & is)
+{
+  double v;
+  int opt;
+  is >> v >> opt;
+
+  for (int i = 0; i < N; ++i)
+  {
+    is >> order_[i];
+  }
+}
+
 int main(int argc, char * argv[])
 {
   if (argc != 2)
@@ -182,13 +195,19 @@ int main(int argc, char * argv[])
     f >> points[i].x >> points[i].y;
   }
 
+  std::ostringstream os;
+  os << N << ".sol";
+
   Path best;
+  std::ifstream start("start/" + os.str());
+  if (start)
+    best.read(start);
   double bestValue = best.value();
 
   std::ofstream log("tsp.log", std::ofstream::app);
 
   int A = std::min(50000, 10*N);
-  Path p;
+  Path p = best;
   int bestIter = -1;
   for (int iter = 0; iter < A; ++iter)
   {
@@ -217,8 +236,6 @@ int main(int argc, char * argv[])
   res.precision(12);
   res << "N=" << N << "\tbestIter=" << bestIter << "\tmaxIter=" << A << "\tbest=" << bestValue << '\n';
 
-  std::ostringstream os;
-  os << N << ".sol";
   std::ofstream sol(os.str());
   sol.precision(12);
   best.print(sol);
