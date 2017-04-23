@@ -39,49 +39,41 @@ public:
   double value() const;
   void print(std::ostream & os) const;
   void read(std::istream & is);
-  int twoOpt(int i, int j, double T, double prob);
-  void allShortTwoOpts(int maxDist);
-  void manyTwoOps(int tries, double T);
+  bool threeOpt(int i, int j, int k, double T, double prob);
+  void manyThreeOpts(int tries, double T);
   void fullOptimize(double T);
 private:
-  std::vector<int> order_;
+  int next(int i) const { return dblList_[2 * i]; }
+  int & next(int i) { return dblList_[2 * i]; }
+  int & prev(int i) { return dblList_[2 * i + 1]; }
+  std::vector<int> dblList_;
 };
 
 Path::Path()
 {
-  order_.resize(N);
+  dblList_.resize(2 * N);
   for (int i = 0; i < N; ++i)
   {
-    order_[i] = i;
+    next(i) = (i + 1) % N;
+    prev(i) = (i + N - 1) % N;
   }
-  std::random_shuffle(order_.begin(), order_.end());
 }
 
-// attempts to reverse the order of traversal in [i+1, j] or in [j+1,i] (whatever is smaller)
-// returns the number of changed elements or 0 if the reverse is rejected
-int Path::twoOpt(int i, int j, double T, double prob)
+bool Path::threeOpt(int i, int j, int k, double T, double prob)
 {
-  int i1 = i + 1 < N ? i + 1 : 0;
-  int j1 = j + 1 < N ? j + 1 : 0;
-  int n = j - i;
-  if (n < 0)
-    n += N;
-  assert(n >= 0 && n <= N);
-  int nb = N - n;
-  if (nb < n)
-  {
-    std::swap(i, j);
-    std::swap(i1, j1);
-    std::swap(n, nb);
-  }
-  if (n <= 1)
-    return 0;
+  if (i == j || j == k || k == i)
+    return false;
+  int i1 = next(i);
+  int j1 = next(j);
+  int k1 = next(k);
 
-  double iOld = dist(points[order_[i]], points[order_[i1]]);
-  double jOld = dist(points[order_[j]], points[order_[j1]]);
-  double iNew = dist(points[order_[i]], points[order_[j]]);
-  double jNew = dist(points[order_[i1]], points[order_[j1]]);
-  double delta = iOld + jOld - iNew - jNew;
+  double iOld = dist(points[i], points[i1]);
+  double jOld = dist(points[j], points[j1]);
+  double kOld = dist(points[k], points[k1]);
+  double iNew = dist(points[i], points[j1]);
+  double jNew = dist(points[j], points[k1]);
+  double kNew = dist(points[k], points[i1]);
+  double delta = iOld + jOld + kOld - iNew - jNew - kNew;
   if (delta <= 0)
   {
     if (T <= 0)
@@ -90,37 +82,29 @@ int Path::twoOpt(int i, int j, double T, double prob)
       return 0;
   }
 
-  if (i <= j)
+  for (int ii = i1; ii != j; ii = next(ii))
   {
-    std::reverse(order_.begin() + i + 1, order_.begin() + j + 1);
-  }
-  else if (i + j + 2 < N)
-  {
-    for (int k = 0; k < j + 1; ++k)
-    {
-      std::swap(order_[i + 1 + k], order_[j - k]);
-    }
-    std::reverse(order_.begin() + i + 2 + j, order_.end());
-  }
-  else
-  {
-    for (int k = 0; i + 1 + k < N; ++k) // k_max = N - i - 2
-    {
-      std::swap(order_[i + 1 + k], order_[j - k]);
-    }
-    std::reverse(order_.begin(), order_.begin() + (j + i + 2 - N));
+    if (ii == k)
+      return false;
   }
 
-  return n;
+  next(i) = j1;
+  prev(j1) = i;
+  next(j) = k1;
+  prev(k1) = j;
+  next(k) = i1;
+  prev(i1) = k;
+
+  return true;
 }
 
-void Path::manyTwoOps(int tries, double T)
+void Path::manyThreeOpts(int tries, double T)
 {
   std::uniform_int_distribution<> dis(0, N - 1);
   std::uniform_real_distribution<> probDist(0, 1);
   for (int i = 0; i < tries; ++i)
   {
-    twoOpt(dis(re), dis(re), T, probDist(re));
+    threeOpt(dis(re), dis(re), dis(re), T, probDist(re));
   }
 }
 
@@ -134,29 +118,21 @@ void Path::fullOptimize(double T)
       T = 0;
     else if (l > 0)
       T /= 1.5;
-    manyTwoOps(TRIES, T);
+    manyThreeOpts(TRIES, T);
     TRIES *= 2;
-  }
-}
-
-void Path::allShortTwoOpts(int maxDist)
-{
-  for (int i = 0; i < N; ++i)
-  {
-    for (int j = 2; j <= maxDist; ++j)
-    {
-      twoOpt(i, (i + j) % N, 0, 0);
-    }
   }
 }
 
 double Path::value() const
 {
-  double res = dist(points[order_.back()], points[order_.front()]);
-  for (int i = 0; i + 1 < N; ++i)
+  double res = 0;
+  int i = 0;
+  do
   {
-    res += dist(points[order_[i]], points[order_[i+1]]);
-  }
+    int i1 = next(i);
+    res += dist(points[i], points[i1]);
+    i = i1;
+  } while (i != 0);
   return res;
 }
 
@@ -164,10 +140,12 @@ void Path::print(std::ostream & os) const
 {
   os << value() << " 0\n";
 
-  for (int i = 0; i < N; ++i)
+  int i = 0;
+  do
   {
-    os << order_[i] << ' ';
-  }
+    os << i << ' ';
+    i = next(i);
+  } while (i != 0);
 }
 
 void Path::read(std::istream & is)
@@ -176,10 +154,25 @@ void Path::read(std::istream & is)
   int opt;
   is >> v >> opt;
 
+  int previous = -1;
+  int first = -1;
   for (int i = 0; i < N; ++i)
   {
-    is >> order_[i];
+    int curr;
+    is >> curr;
+    if (previous >= 0)
+    {
+      next(previous) = curr;
+      prev(curr) = previous;
+    }
+    if (i == 0)
+    {
+      first = curr;
+    }
+    previous = curr;
   }
+  next(previous) = first;
+  prev(first) = previous;
 }
 
 int main(int argc, char * argv[])
@@ -213,7 +206,6 @@ int main(int argc, char * argv[])
   {
     double T = 1.5 * p.value() / (2*N);
     p.fullOptimize(T);
-    p.allShortTwoOpts(50);
     double pValue = p.value();
     log << "iter=" << iter 
         << "\tlast=" << pValue 
