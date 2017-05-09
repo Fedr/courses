@@ -1,5 +1,3 @@
-#include "gurobi_c++.h"
-
 #include <algorithm>
 #include <assert.h>
 #include <chrono>
@@ -14,7 +12,7 @@
 struct Facility
 {
   double setupCost = 0;
-  double capacity = 0;
+  int capacity = 0;
   double x = 0;
   double y = 0;
 };
@@ -22,7 +20,7 @@ std::vector<Facility> facilities;
 
 struct Customer
 {
-  double demand = 0;
+  int demand = 0;
   double x = 0;
   double y = 0;
 };
@@ -46,114 +44,108 @@ void readData(const char * filename)
   }
 }
 
+class Solution
+{
+  struct FacilityUse
+  {
+    int consumed = 0; // <= capacity
+  };
+  std::vector<FacilityUse> fuse_;
+  struct CustomerServed
+  {
+    int facility = -1;
+  };
+  std::vector<CustomerServed> cs_;
+
+public:
+  Solution();
+  double cost() const;
+  void print(std::ostream & os) const;
+
+private:
+  // returns false if the facility cannot serve the customer due to capacity limit
+  bool serve_(int customer, int facility);
+};
+
+Solution::Solution()
+  : fuse_( facilities.size() )
+  , cs_( customers.size() )
+{
+  int f = 0;
+  for (int c = 0; c < customers.size(); ++c)
+  {
+    while (!serve_(c, f))
+    {
+      ++f;
+      assert(f < facilities.size());
+    }
+  }
+}
+
+double Solution::cost() const
+{
+  double res = 0;
+  for (int f = 0; f < facilities.size(); ++f)
+  {
+    if (fuse_[f].consumed == 0)
+      continue;
+    res += facilities[f].setupCost;
+  }
+
+  for (int c = 0; c < customers.size(); ++c)
+  {
+    const auto & cm = customers[c];
+    const auto & f = facilities[cs_[c].facility];
+    double dx = cm.x - f.x;
+    double dy = cm.y - f.y;
+    res += sqrt(dx*dx + dy*dy);
+  }
+  return res;
+}
+
+void Solution::print(std::ostream & os) const
+{
+  os.precision(12);
+  os << cost() << " 0\n";
+
+  for (int c = 0; c < customers.size(); ++c)
+  {
+    os << cs_[c].facility << ' ';
+  }
+  os << std::endl;
+}
+
+bool Solution::serve_(int customer, int facility)
+{
+  CustomerServed & c = cs_[customer];
+  if (c.facility == facility)
+    return true;
+
+  int demand = customers[customer].demand;
+
+  if (facility >= 0)
+  {
+    if (fuse_[facility].consumed + demand > facilities[facility].capacity)
+      return false;
+    fuse_[facility].consumed += demand;
+  }
+  if (c.facility >= 0)
+  {
+    fuse_[c.facility].consumed -= demand;
+    assert(fuse_[c.facility].consumed >= 0);
+  }
+  c.facility = facility;
+  return true;
+}
+
 int main(int argc, char * argv[])
 {
   if (argc != 2)
     return 1;
   readData(argv[1]);
 
-  GRBEnv env;
-  GRBModel model = GRBModel(env);
-  model.set(GRB_StringAttr_ModelName, "facility");
-
-  // Facility open decision variables: open[f] == 1 if facility f is open.
-  std::unique_ptr<GRBVar[]> open( model.addVars((int)facilities.size(), GRB_BINARY) );
-  for (int f = 0; f < facilities.size(); ++f)
-  {
-    std::ostringstream vname;
-    vname << "Open" << f;
-    open[f].set(GRB_DoubleAttr_Obj, facilities[f].setupCost);
-    open[f].set(GRB_StringAttr_VarName, vname.str());
-  }
-
-  // Transportation decision variables: 
-  // whether to transport from a facility f to a customer c
-  std::vector< std::unique_ptr<GRBVar[]> > transport(customers.size());
-  for (int c = 0; c < customers.size(); ++c)
-  {
-    transport[c].reset( model.addVars((int)facilities.size(), GRB_BINARY) );
-
-    for (int f = 0; f < facilities.size(); ++f)
-    {
-      std::ostringstream vname;
-      vname << "Trans" << f << "." << c;
-      double dx = customers[c].x - facilities[f].x;
-      double dy = customers[c].y - facilities[f].y;
-      transport[c][f].set(GRB_DoubleAttr_Obj, sqrt(dx*dx + dy*dy));
-      transport[c][f].set(GRB_StringAttr_VarName, vname.str());
-    }
-  }
-
-  // The objective is to minimize the total fixed and variable costs
-  model.set(GRB_IntAttr_ModelSense, GRB_MINIMIZE);
-
-  // Production constraints
-  // Note that the right-hand limit sets the production to zero if
-  // the plant is closed
-  for (int f = 0; f < facilities.size(); ++f)
-  {
-    GRBLinExpr totalDemand = 0;
-    for (int c = 0; c < customers.size(); ++c)
-    {
-      totalDemand += customers[c].demand * transport[c][f];
-    }
-    std::ostringstream cname;
-    cname << "Capacity" << f;
-    model.addConstr(totalDemand <= facilities[f].capacity * open[f], cname.str());
-  }
-
-  // Demand constraints
-  for (int c = 0; c < customers.size(); ++c)
-  {
-    GRBLinExpr dtot = 0;
-    for (int f = 0; f < facilities.size(); ++f)
-    {
-      dtot += transport[c][f];
-    }
-    std::ostringstream cname;
-    cname << "Demand" << c;
-    model.addConstr(dtot == 1, cname.str());
-  }
-
-  // First, open all facilities
-  for (int f = 0; f < facilities.size(); ++f)
-  {
-    open[f].set(GRB_DoubleAttr_Start, 1.0);
-  }
-
-  // Use barrier to solve root relaxation
-  model.set(GRB_IntParam_Method, GRB_METHOD_BARRIER);
-
-  // Write optimization details in this file
-  model.set(GRB_StringParam_LogFile, "optimize.txt");
-  model.set(GRB_IntParam_LogToConsole, 0);
-
-  // Solve
-  try
-  {
-    model.optimize();
-  }
-  catch (const GRBException & e)
-  {
-    std::cout << "Error code = " << e.getErrorCode() << std::endl;
-    std::cout << e.getMessage() << std::endl;
-    return 1;
-  }
-
-  // Print solution
-  std::cout << model.get(GRB_DoubleAttr_ObjVal) << " 0\n";
-  for (int c = 0; c < customers.size(); ++c)
-  {
-    for (int f = 0; f < facilities.size(); ++f)
-    {
-      if (transport[c][f].get(GRB_DoubleAttr_X) > 0.99)
-      {
-        std::cout << f << ' ';
-        break;
-      }
-    }
-  }
-  std::cout << std::endl;
+  Solution s;
+  s.print(std::cout);
 
   return 0;
 }
