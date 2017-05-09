@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tsp", "tsp\tsp.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "facility", "facility\facility.vcxproj", "{6BFC1A05-3AAB-404F-BD20-A987FFA4ED16}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vrp", "vrp\vrp.vcxproj", "{90F3F10B-DB2C-48A3-A966-0E246D18380F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -33,6 +35,10 @@ Global
 		{6BFC1A05-3AAB-404F-BD20-A987FFA4ED16}.Debug|x64.Build.0 = Debug|x64
 		{6BFC1A05-3AAB-404F-BD20-A987FFA4ED16}.Release|x64.ActiveCfg = Release|x64
 		{6BFC1A05-3AAB-404F-BD20-A987FFA4ED16}.Release|x64.Build.0 = Release|x64
+		{90F3F10B-DB2C-48A3-A966-0E246D18380F}.Debug|x64.ActiveCfg = Debug|x64
+		{90F3F10B-DB2C-48A3-A966-0E246D18380F}.Debug|x64.Build.0 = Debug|x64
+		{90F3F10B-DB2C-48A3-A966-0E246D18380F}.Release|x64.ActiveCfg = Release|x64
+		{90F3F10B-DB2C-48A3-A966-0E246D18380F}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
