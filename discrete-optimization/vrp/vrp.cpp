@@ -49,11 +49,17 @@ class VPath
 {
 public:
   double len() const;
+  int stops() const { return (int)path_.size() - 2; }
+  int customerAt(int i) const { return path_[i + 1]; }
   friend std::ostream & operator <<(std::ostream & o, const VPath & v);
   // computes the path increase in case of given customer insertion
   double insertCost(int c) const;
   // inserts given customer in the path
   bool insert(int c);
+  // computes the path increase (always negative) in case of customer given by path index deletion
+  double eraseAtCost(int i) const;
+  // erases customer given by path index
+  void eraseAt(int i);
 private:
   int consumed_ = 0;
   std::vector<int> path_ = { 0, 0 };
@@ -110,7 +116,21 @@ bool VPath::insert(int c)
   path_.insert(path_.begin() + minPos + 1, c);
   consumed_ += cu.demand;
   return true;
+}
 
+double VPath::eraseAtCost(int i) const
+{
+  assert(i >= 0 && i + 2 < path_.size());
+  return dist(path_[i], path_[i + 2])
+    - dist(path_[i], path_[i + 1]) 
+    - dist(path_[i + 1], path_[i + 2]);
+}
+
+void VPath::eraseAt(int i)
+{
+  assert(i >= 0 && i + 2 < path_.size());
+  consumed_ -= customers[path_[i + 1]].demand;
+  path_.erase(path_.begin() + i + 1);
 }
 
 class Solution
@@ -119,6 +139,7 @@ public:
   Solution();
   double cost() const;
   void print(std::ostream & os) const;
+  void moveCustomersToOtherPaths(int tries);
 
 private:
   std::vector<VPath> vs_;
@@ -174,6 +195,30 @@ void Solution::print(std::ostream & os) const
   os << std::endl;
 }
 
+void Solution::moveCustomersToOtherPaths(int tries)
+{
+  std::uniform_int_distribution<> path(0, V - 1);
+  for (int t = 0; t < tries; ++t)
+  {
+    int fromPath = path(re);
+    int toPath = path(re);
+    if (fromPath == toPath)
+      continue;
+    auto & fp = vs_[fromPath];
+    auto & tp = vs_[toPath];
+    int fromStops = fp.stops();
+    if (fromStops <= 0)
+      continue;
+    int i = std::uniform_int_distribution<>(0, fromStops - 1)(re);
+    int c = fp.customerAt(i);
+    double cost = fp.eraseAtCost(i) + tp.insertCost(c);
+    if (cost < 0)
+    {
+      fp.eraseAt(i);
+      tp.insert(c);
+    }
+  }
+}
 
 int main(int argc, char * argv[])
 {
@@ -183,19 +228,16 @@ int main(int argc, char * argv[])
 
   Solution best;
 
-/*  std::ofstream log("facility.log", std::ofstream::app);
+  std::ofstream log("vrp.log", std::ofstream::app);
   log.precision(12);
   for (int iter = 0; iter < 1000; ++iter)
   {
-    best.ffChanges(1000);
-    best.ccChanges(10000);
-    best.cfChanges(10000);
-    log << "N=" << facilities.size()
-      << "\tM=" << customers.size()
+    best.moveCustomersToOtherPaths(10000);
+    log << "N=" << customers.size()
       << "\titer=" << iter
       << "\tbest=" << best.cost()
       << std::endl;
-  }*/
+  }
 
   std::ostringstream os;
   os << customers.size() << ".sol";
