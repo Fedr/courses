@@ -64,6 +64,7 @@ public:
   double cost() const;
   void print(std::ostream & os) const;
   void cfChanges(int num);
+  void ffChanges(int num);
 
 private:
   // returns distance between given customer and given facility
@@ -72,6 +73,10 @@ private:
   bool serve_(int customer, int facility);
   // returns cost increase if serve given customer at given facility
   double serveCost_(int customer, int facility) const;
+  // moves all customers from facility to facility
+  bool moveFacility_(int from, int to);
+  // returns cost increase if moves all customers from facility to facility
+  double moveFacilityCost_(int from, int to) const;
 };
 
 Solution::Solution()
@@ -140,6 +145,18 @@ void Solution::cfChanges(int num)
   }
 }
 
+void Solution::ffChanges(int num)
+{
+  std::uniform_int_distribution<> faci(0, (int)facilities.size() - 1);
+  for (int n = 0; n < num; ++n)
+  {
+    int from = faci(re);
+    int to = faci(re);
+    if (moveFacilityCost_(from, to) < 0)
+      moveFacility_(from, to);
+  }
+}
+
 bool Solution::serve_(int customer, int facility)
 {
   CustomerServed & c = cs_[customer];
@@ -188,6 +205,50 @@ double Solution::serveCost_(int customer, int facility) const
   return res;
 }
 
+bool Solution::moveFacility_(int from, int to)
+{
+  if (to == from)
+    return true;
+
+  auto & fromConsumned = fuse_[from].consumed;
+  auto & toConsumned = fuse_[to].consumed;
+  if (fromConsumned + toConsumned > facilities[to].capacity)
+    return false;
+
+  for (auto & c : cs_)
+  {
+    if (c.facility == from)
+      c.facility = to;
+  }
+
+  toConsumned += fromConsumned;
+  fromConsumned = 0;
+  return true;
+}
+
+double Solution::moveFacilityCost_(int from, int to) const
+{
+  if (to == from)
+    return 0;
+
+  auto fromConsumned = fuse_[from].consumed;
+  auto toConsumned = fuse_[to].consumed;
+  if (fromConsumned + toConsumned > facilities[to].capacity)
+    return DBL_MAX;
+
+  double res = -facilities[from].setupCost;
+  if (fuse_[to].consumed == 0)
+    res += facilities[to].setupCost;
+
+  for (int c = 0; c < customers.size(); ++c)
+  {
+    if (cs_[c].facility == from)
+      res += dist_(c, to) - dist_(c, from);
+  }
+
+  return res;
+}
+
 int main(int argc, char * argv[])
 {
   if (argc != 2)
@@ -198,10 +259,13 @@ int main(int argc, char * argv[])
 
   std::ofstream log("facility.log", std::ofstream::app);
   log.precision(12);
-  for (int iter = 0; iter < 100; ++iter)
+  for (int iter = 0; iter < 1000; ++iter)
   {
+    best.ffChanges(1000);
     best.cfChanges(10000);
-    log << "iter=" << iter
+    log << "N=" << facilities.size()
+      << "\tM=" << customers.size()
+      << "\titer=" << iter
       << "\tbest=" << best.cost()
       << std::endl;
   }
