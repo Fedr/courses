@@ -9,6 +9,8 @@
 #include <sstream>
 #include <random>
 
+std::default_random_engine re;
+
 struct Facility
 {
   double setupCost = 0;
@@ -61,10 +63,15 @@ public:
   Solution();
   double cost() const;
   void print(std::ostream & os) const;
+  void cfChanges(int num);
 
 private:
+  // returns distance between given customer and given facility
+  double dist_(int customer, int facility) const;
   // returns false if the facility cannot serve the customer due to capacity limit
   bool serve_(int customer, int facility);
+  // returns cost increase if serve given customer at given facility
+  double serveCost_(int customer, int facility) const;
 };
 
 Solution::Solution()
@@ -82,6 +89,15 @@ Solution::Solution()
   }
 }
 
+double Solution::dist_(int customer, int facility) const
+{
+  const auto & cm = customers[customer];
+  const auto & f = facilities[facility];
+  double dx = cm.x - f.x;
+  double dy = cm.y - f.y;
+  return sqrt(dx*dx + dy*dy);
+}
+
 double Solution::cost() const
 {
   double res = 0;
@@ -94,11 +110,7 @@ double Solution::cost() const
 
   for (int c = 0; c < customers.size(); ++c)
   {
-    const auto & cm = customers[c];
-    const auto & f = facilities[cs_[c].facility];
-    double dx = cm.x - f.x;
-    double dy = cm.y - f.y;
-    res += sqrt(dx*dx + dy*dy);
+    res += dist_(c, cs_[c].facility);
   }
   return res;
 }
@@ -113,6 +125,19 @@ void Solution::print(std::ostream & os) const
     os << cs_[c].facility << ' ';
   }
   os << std::endl;
+}
+
+void Solution::cfChanges(int num)
+{
+  std::uniform_int_distribution<> cust(0, (int)customers.size() - 1);
+  std::uniform_int_distribution<> faci(0, (int)facilities.size() - 1);
+  for (int n = 0; n < num; ++n)
+  {
+    int c = cust(re);
+    int f = faci(re);
+    if (serveCost_(c, f) < 0)
+      serve_(c, f);
+  }
 }
 
 bool Solution::serve_(int customer, int facility)
@@ -138,14 +163,55 @@ bool Solution::serve_(int customer, int facility)
   return true;
 }
 
+double Solution::serveCost_(int customer, int facility) const
+{
+  int oldFacility = cs_[customer].facility;
+  if (oldFacility == facility)
+    return 0;
+
+  int demand = customers[customer].demand;
+
+  assert(facility >= 0);
+  assert(oldFacility >= 0);
+
+  if (fuse_[facility].consumed + demand > facilities[facility].capacity)
+    return DBL_MAX;
+
+  double res = 0;
+  if (fuse_[oldFacility].consumed == demand)
+    res -= facilities[oldFacility].setupCost;
+  if (fuse_[facility].consumed == 0)
+    res += facilities[facility].setupCost;
+
+  res -= dist_(customer, oldFacility);
+  res += dist_(customer, facility);
+  return res;
+}
+
 int main(int argc, char * argv[])
 {
   if (argc != 2)
     return 1;
   readData(argv[1]);
 
-  Solution s;
-  s.print(std::cout);
+  Solution best;
+
+  std::ofstream log("facility.log", std::ofstream::app);
+  log.precision(12);
+  for (int iter = 0; iter < 100; ++iter)
+  {
+    best.cfChanges(10000);
+    log << "iter=" << iter
+      << "\tbest=" << best.cost()
+      << std::endl;
+  }
+
+  std::ostringstream os;
+  os << facilities.size() << '_' << customers.size() << ".sol";
+  std::ofstream sol(os.str());
+  best.print(sol);
+
+  best.print(std::cout);
 
   return 0;
 }
