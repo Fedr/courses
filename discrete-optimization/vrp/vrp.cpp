@@ -167,6 +167,7 @@ public:
   double cost() const;
   void print(std::ostream & os) const;
   void moveCustomers(int tries);
+  void swapCustomers(int tries);
 
 private:
   std::vector<VPath> vs_;
@@ -251,6 +252,51 @@ void Solution::moveCustomers(int tries)
   }
 }
 
+void Solution::swapCustomers(int tries)
+{
+  std::uniform_int_distribution<> path(0, V - 1);
+  for (int t = 0; t < tries; ++t)
+  {
+    auto & p0 = vs_[path(re)];
+    auto & p1 = vs_[path(re)];
+    int stops0 = p0.stops();
+    int stops1 = p1.stops();
+    if (stops0 <= 0 || stops1 <= 0)
+      continue;
+    int i0 = std::uniform_int_distribution<>(0, stops0 - 1)(re);
+    int i1 = std::uniform_int_distribution<>(0, stops1 - 1)(re);
+    if (&p0 == &p1)
+    {
+      p0.repositionFrom(i0);
+      p0.repositionFrom(i1);
+      continue;
+    }
+    double eraseCost0 = p0.eraseAtCost(i0);
+    double eraseCost1 = p1.eraseAtCost(i1);
+    if (eraseCost0 + eraseCost1 >= DBL_MAX)
+      continue;
+    int c0 = p0.customerAt(i0);
+    int c1 = p1.customerAt(i1);
+    p0.eraseAt(i0);
+    p1.eraseAt(i1);
+    double insertCost = p0.insertCost(c1) + p1.insertCost(c0);
+    if (eraseCost0 + eraseCost1 + insertCost < 0)
+    {
+      p0.insert(c1);
+      p1.insert(c0);
+      continue;
+    }
+    p0.insert(c0);
+    insertCost = p0.insertCost(c1);
+    if (eraseCost1 + insertCost < 0)
+    {
+      p0.insert(c1);
+      continue;
+    }
+    p1.insert(c1);
+  }
+}
+
 int main(int argc, char * argv[])
 {
   if (argc != 2)
@@ -261,9 +307,9 @@ int main(int argc, char * argv[])
 
   std::ofstream log("vrp.log", std::ofstream::app);
   log.precision(12);
-  for (int iter = 0; iter < 1000; ++iter)
+  for (int iter = 0; iter < 100; ++iter)
   {
-    best.moveCustomers(10000);
+    best.swapCustomers(10000);
     log << "N=" << customers.size()
       << "\titer=" << iter
       << "\tbest=" << best.cost()
