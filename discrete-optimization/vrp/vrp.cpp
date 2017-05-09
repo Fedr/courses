@@ -60,6 +60,8 @@ public:
   double eraseAtCost(int i) const;
   // erases customer given by path index
   void eraseAt(int i);
+  // moves customer given by path index into a better path position
+  bool repositionFrom(int i);
 private:
   int consumed_ = 0;
   std::vector<int> path_ = { 0, 0 };
@@ -133,13 +135,38 @@ void VPath::eraseAt(int i)
   path_.erase(path_.begin() + i + 1);
 }
 
+bool VPath::repositionFrom(int oldPos)
+{
+  int c = customerAt(oldPos);
+  double minIncr = DBL_MAX;
+  int minPos = -1;
+  for (int i = 0; i + 1 < path_.size(); ++i)
+  {
+    if (i == oldPos || i == oldPos + 1)
+      continue;
+    double x = dist(path_[i], c) + dist(c, path_[i + 1]) - dist(path_[i], path_[i + 1]);
+    if (x < minIncr)
+    {
+      minIncr = x;
+      minPos = i;
+    }
+  }
+  if (eraseAtCost(oldPos) + minIncr >= 0)
+    return false;
+  if (minPos > oldPos)
+    --minPos;
+  path_.erase(path_.begin() + oldPos + 1);
+  path_.insert(path_.begin() + minPos + 1, c);
+  return true;
+}
+
 class Solution
 {
 public:
   Solution();
   double cost() const;
   void print(std::ostream & os) const;
-  void moveCustomersToOtherPaths(int tries);
+  void moveCustomers(int tries);
 
 private:
   std::vector<VPath> vs_;
@@ -195,15 +222,13 @@ void Solution::print(std::ostream & os) const
   os << std::endl;
 }
 
-void Solution::moveCustomersToOtherPaths(int tries)
+void Solution::moveCustomers(int tries)
 {
   std::uniform_int_distribution<> path(0, V - 1);
   for (int t = 0; t < tries; ++t)
   {
     int fromPath = path(re);
     int toPath = path(re);
-    if (fromPath == toPath)
-      continue;
     auto & fp = vs_[fromPath];
     auto & tp = vs_[toPath];
     int fromStops = fp.stops();
@@ -211,11 +236,17 @@ void Solution::moveCustomersToOtherPaths(int tries)
       continue;
     int i = std::uniform_int_distribution<>(0, fromStops - 1)(re);
     int c = fp.customerAt(i);
+    if (fromPath == toPath)
+    {
+      fp.repositionFrom(i);
+      continue;
+    }
     double cost = fp.eraseAtCost(i) + tp.insertCost(c);
     if (cost < 0)
     {
       fp.eraseAt(i);
       tp.insert(c);
+      continue;
     }
   }
 }
@@ -232,7 +263,7 @@ int main(int argc, char * argv[])
   log.precision(12);
   for (int iter = 0; iter < 1000; ++iter)
   {
-    best.moveCustomersToOtherPaths(10000);
+    best.moveCustomers(10000);
     log << "N=" << customers.size()
       << "\titer=" << iter
       << "\tbest=" << best.cost()
