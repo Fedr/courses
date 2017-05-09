@@ -63,6 +63,7 @@ public:
   Solution();
   double cost() const;
   void print(std::ostream & os) const;
+  void ccChanges(int num);
   void cfChanges(int num);
   void ffChanges(int num);
 
@@ -77,6 +78,10 @@ private:
   bool moveFacility_(int from, int to);
   // returns cost increase if moves all customers from facility to facility
   double moveFacilityCost_(int from, int to) const;
+  // swaps two customers between their serving facilities
+  bool swapCustomers_(int c0, int c1);
+  // returns cost increase if swap two customers between their serving facilities
+  double swapCustomersCost_(int c0, int c1) const;
 };
 
 Solution::Solution()
@@ -130,6 +135,18 @@ void Solution::print(std::ostream & os) const
     os << cs_[c].facility << ' ';
   }
   os << std::endl;
+}
+
+void Solution::ccChanges(int num)
+{
+  std::uniform_int_distribution<> cust(0, (int)customers.size() - 1);
+  for (int n = 0; n < num; ++n)
+  {
+    int c0 = cust(re);
+    int c1 = cust(re);
+    if (swapCustomersCost_(c0, c1) < 0)
+      swapCustomers_(c0, c1);
+  }
 }
 
 void Solution::cfChanges(int num)
@@ -249,6 +266,42 @@ double Solution::moveFacilityCost_(int from, int to) const
   return res;
 }
 
+bool Solution::swapCustomers_(int c0, int c1)
+{
+  int & f0 = cs_[c0].facility;
+  int & f1 = cs_[c1].facility;
+  if (f0 == f1)
+    return true;
+  int demandDelta = customers[c1].demand - customers[c0].demand;
+  if (demandDelta > 0 && fuse_[f0].consumed + demandDelta > facilities[f0].capacity)
+    return false;
+  if (demandDelta < 0 && fuse_[f1].consumed - demandDelta > facilities[f1].capacity)
+    return false;
+
+  fuse_[f0].consumed += demandDelta;
+  fuse_[f1].consumed -= demandDelta;
+  std::swap(f0, f1);
+  return true;
+}
+
+double Solution::swapCustomersCost_(int c0, int c1) const
+{
+  int f0 = cs_[c0].facility;
+  int f1 = cs_[c1].facility;
+  if (f0 == f1)
+    return 0;
+  int demandDelta = customers[c1].demand - customers[c0].demand;
+  if (demandDelta > 0 && fuse_[f0].consumed + demandDelta > facilities[f0].capacity)
+    return DBL_MAX;
+  if (demandDelta < 0 && fuse_[f1].consumed - demandDelta > facilities[f1].capacity)
+    return DBL_MAX;
+
+  double res =
+      dist_(c0, f1) + dist_(c1, f0)
+    - dist_(c0, f0) - dist_(c1, f1);
+  return res;
+}
+
 int main(int argc, char * argv[])
 {
   if (argc != 2)
@@ -262,6 +315,7 @@ int main(int argc, char * argv[])
   for (int iter = 0; iter < 1000; ++iter)
   {
     best.ffChanges(1000);
+    best.ccChanges(10000);
     best.cfChanges(10000);
     log << "N=" << facilities.size()
       << "\tM=" << customers.size()
