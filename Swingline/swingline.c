@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 
 #include <GLFW/glfw3.h>
 
@@ -578,7 +579,8 @@ int main(int argc, char** argv)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClearDepth(1.0f);
 
-    if (c->iter == -1)  /* Interactive mode */
+	time_t start_time = time(NULL);
+	if (c->iter == -1)  /* Interactive mode */
     {
         /*  These are used for rendering to the screen  */
         GLuint quad_vao = quad_new();
@@ -587,6 +589,7 @@ int main(int argc, char** argv)
             shader_compile(GL_FRAGMENT_SHADER, blit_frag_src));
         Stipples* stipples = stipples_new(c, v);
 
+		int i = 0;
         while (!glfwWindowShouldClose(win))
         {
             /*  Render the current voronoi diagram's state to v->tex */
@@ -614,6 +617,9 @@ int main(int argc, char** argv)
             /*  Draw and poll   */
             glfwSwapBuffers(win);
             glfwPollEvents();
+
+			time_t curr_time = time(NULL);
+			printf("Iter #%d, time since start %ju seconds\n", ++i, (uintmax_t)curr_time - (uintmax_t)start_time);
 //			Sleep(100000);
         }
     }
@@ -621,12 +627,13 @@ int main(int argc, char** argv)
     {
         for (int i=0; i < c->iter; ++i)
         {
-            printf("\r%s: %i / %i", argv[0], i + 1, c->iter);
-            fflush(stdout);
             voronoi_draw(c, v);
             sum_draw(c, v, s);
             feedback_draw(c, v, s, f);
-        }
+			glFlush();
+			time_t curr_time = time(NULL);
+			printf("Iter #%d / %d, time since start %ju seconds\n", i+1, c->iter, (uintmax_t)curr_time - (uintmax_t)start_time);
+		}
         printf("\n");
     }
 
@@ -649,6 +656,9 @@ int main(int argc, char** argv)
         size_t bytes = 3 * sizeof(float) * c->samples;
         float (*pts)[3] = (float (*)[3])malloc(3 * sizeof(bytes) * c->samples);
         glGetBufferSubData(GL_ARRAY_BUFFER, 0, bytes, pts);
+
+		time_t curr_time = time(NULL);
+		printf("Points received, time since start %ju seconds\n", (uintmax_t)curr_time - (uintmax_t)start_time);
 
         for (int i=0; i < c->samples; ++i)
         {
