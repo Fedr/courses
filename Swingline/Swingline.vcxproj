@@ -87,16 +87,16 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\lib\libepoxy-shared-x64\include\;D:\lib\glfw-3.2.1.bin.WIN64\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\lib\glfw-3.2.1.bin.WIN64\lib-vc2015\;D:\lib\libepoxy-shared-x64\lib\;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(LIBS)\libepoxy-shared-x64\include\;$(LIBS)\glfw-3.2.1.bin.WIN64\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LIBS)\glfw-3.2.1.bin.WIN64\lib-vc2015\;$(LIBS)\libepoxy-shared-x64\lib\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>D:\lib\libepoxy-shared-x64\include\;D:\lib\glfw-3.2.1.bin.WIN64\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\lib\glfw-3.2.1.bin.WIN64\lib-vc2015\;D:\lib\libepoxy-shared-x64\lib\;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(LIBS)\libepoxy-shared-x64\include\;$(LIBS)\glfw-3.2.1.bin.WIN64\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LIBS)\glfw-3.2.1.bin.WIN64\lib-vc2015\;$(LIBS)\libepoxy-shared-x64\lib\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
