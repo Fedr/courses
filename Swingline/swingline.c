@@ -154,18 +154,22 @@ const char* feedback_src = GLSL(
     void main()
     {
         ivec2 tex_size = textureSize(summed, 0);
-        pos = vec3(0.0f, 0.0f, 0.0f);
-        float weight = 0.0f;
-        float count = 0;
+		vec4 sum = vec4(0.0f, 0.0f, 0.0f, 0.0f);
         for (int y=0; y < tex_size.y; ++y)
         {
-            vec4 t = texelFetch(summed, ivec2(index, y), 0);
-            pos.xy += t.xy;
-            weight += t.w;
-            count += t.z;
+            sum += texelFetch(summed, ivec2(index, y), 0);
         }
-		pos.xy /= weight;
-		pos.z = weight / count;
+		if (sum.w > 0) // to avoid NaNs
+		{
+			pos.xy = sum.xy / sum.w;
+			pos.z = sum.w / sum.z;
+		}
+		else
+		{ // reintroduce the point in a location depending on its id
+			pos.x = (index % 256u) / 255.0f;
+			pos.y = ((index / 256u) % 256u) / 255.0f;
+			pos.z = 0.5f;
+		}
 	}
 );
 
