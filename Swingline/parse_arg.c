@@ -90,16 +90,6 @@ Config* parse_args(int argc, char** argv)
 		exit(-1);
 	}
 
-	if (out)
-	{
-		size_t len = strlen(out);
-		if (len >= 4 && strcmp(out + len - 4, ".svg"))
-		{
-			fprintf(stderr, "Error: output file should end in .svg (%s)\n", out);
-			exit(-1);
-		}
-	}
-
 	Config* c = (Config*)calloc(1, sizeof(Config));
 	(*c) = (Config) {
 		.img = img,

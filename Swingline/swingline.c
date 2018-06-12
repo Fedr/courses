@@ -657,7 +657,9 @@ int main(int argc, char** argv)
 
     if (c->out)
     {
-        FILE* f = fopen(c->out, "w");
+		char buffer[_MAX_PATH];
+		sprintf(buffer, "%s.svg", c->out);
+        FILE* f = fopen(buffer, "w");
         if (!f)
         {
             perror("File opening failed");
@@ -688,10 +690,27 @@ int main(int argc, char** argv)
                     pts[i][2]);
         }
 
-        free(pts);
         fprintf(f, "</svg>");
         fclose(f);
-    }
+
+		sprintf(buffer, "%s.txt", c->out);
+		f = fopen(buffer, "w");
+		if (!f)
+		{
+			perror("File opening failed");
+			free(pts);
+			return EXIT_FAILURE;
+		}
+
+		fprintf(f, "%d\n", c->samples);
+		for (int i = 0; i < c->samples; ++i)
+		{
+			fprintf(f, "%f %f %f\n", pts[i][0], pts[i][1], pts[i][2]);
+		}
+		fclose(f);
+
+		free(pts);
+	}
 
     return 0;
 }
