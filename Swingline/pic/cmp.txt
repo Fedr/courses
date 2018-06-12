@@ -2,5 +2,6 @@ Iter #300, time since start:
 
 points    1000        10000
           --------    --------
+i7-3770:   71 sec      fail
 i5-6500:   46 sec     ~460 sec
 GTX 970:    6 sec       55 sec
