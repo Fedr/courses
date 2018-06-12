@@ -14,7 +14,8 @@ typedef struct Config_ {
 
 	int iter;               /*  Number of iterations; -1 if interactive */
 	const char* out;        /*  Output file name  */
-	int show_voronoi;       /*  bool: whether to show Voronoi cells */
+    const char* in_points;  /*  Input file name with points */
+    int show_voronoi;       /*  bool: whether to show Voronoi cells */
 } Config;
 
 Config* parse_args(int argc, char** argv);

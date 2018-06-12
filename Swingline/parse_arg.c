@@ -33,11 +33,12 @@ Config* parse_args(int argc, char** argv)
 	float r = 0.01f;
 	int iter = -1;
 	const char* out = NULL;
-	int show_voronoi = 0;
+    const char* in_points = NULL;
+    int show_voronoi = 0;
 
 	while (1)
 	{
-		char c = getopt(argc, argv, "vr:n:o:i:");
+		char c = getopt(argc, argv, "vr:n:o:i:p:");
 		if (c == -1) { break; }
 
 		switch (c)
@@ -51,7 +52,10 @@ Config* parse_args(int argc, char** argv)
 		case 'o':
 			out = optarg;
 			break;
-		case 'r':
+        case 'p':
+            in_points = optarg;
+            break;
+        case 'r':
 			r = 0.01f * (float)atof(optarg);
 			break;
 		case 'v':
@@ -100,6 +104,7 @@ Config* parse_args(int argc, char** argv)
 		.radius = r,
 		.iter = iter,
 		.out = out,
+		.in_points = in_points,
 		.show_voronoi = show_voronoi
 	};
 

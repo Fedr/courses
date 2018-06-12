@@ -269,28 +269,52 @@ void voronoi_cone_bind(uint16_t n)
  */
 GLuint voronoi_instances(const Config* c)
 {
-    GLuint vbo;
     size_t bytes = c->samples * 3 * sizeof(float);
     float* buf = (float*)malloc(bytes);
 
-    /*  Fill the buffer with values between 0 and 1, using        *
-     *  rejection sampling to create a good initial distribution  */
-    uint16_t i=0;
-    while (i < c->samples)
+    if (c->in_points)
     {
-        int x = rand() % c->width;
-        int y = rand() % c->height;
-        uint8_t p = c->img[y*c->width + x];
-
-        //if ((rand() % 256) > p)
+        FILE * f = fopen(c->in_points, "r");
+        if (!f)
         {
-            buf[3*i]     = (x + 0.5f) / c->width;
-            buf[3*i + 1] = (y + 0.5f) / c->height;
-            buf[3*i + 2] = 0.5f;
-            i++;
+            perror("File opening failed");
+            exit(-1);
+        }
+        uint16_t s;
+        fscanf(f, "%hu", &s);
+        if (s != c->samples)
+        {
+            perror("Wrong number of points in the file");
+            exit(-1);
+        }
+        for (int i = 0; i < c->samples; ++i)
+        {
+            fscanf(f, "%f%f%f", &buf[3 * i], &buf[3 * i + 1], &buf[3 * i + 2]);
+        }
+        fclose(f);
+    }
+    else
+    {
+        /*  Fill the buffer with values between 0 and 1, using        *
+         *  rejection sampling to create a good initial distribution  */
+        uint16_t i = 0;
+        while (i < c->samples)
+        {
+            int x = rand() % c->width;
+            int y = rand() % c->height;
+            uint8_t p = c->img[y*c->width + x];
+
+            //if ((rand() % 256) > p)
+            {
+                buf[3 * i] = (x + 0.5f) / c->width;
+                buf[3 * i + 1] = (y + 0.5f) / c->height;
+                buf[3 * i + 2] = 0.5f;
+                i++;
+            }
         }
     }
 
+    GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, bytes, buf, GL_DYNAMIC_DRAW);
