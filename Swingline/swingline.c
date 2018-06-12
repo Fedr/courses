@@ -37,14 +37,14 @@
 
 const char* voronoi_vert_src = GLSL(
     layout(location=0) in vec3 pos;     /*  Absolute coordinates  */
-    layout(location=1) in vec2 offset;  /*  0 to 1 */
+    layout(location=1) in vec3 offset;  /*  0 to 1 */
     uniform vec2 scale;
 
     out vec3 color_;
 
     void main()
     {
-        gl_Position = vec4(pos.xy*scale + 2.0f*offset - 1.0f, pos.z, 1.0f);
+        gl_Position = vec4(pos.xy*scale + 2.0f*offset.xy - 1.0f, pos.z*offset.z, 1.0f);
 
         // Pick color based on instance ID
         int r = gl_InstanceID           % 256;
@@ -92,8 +92,20 @@ const char* blit_frag_src = GLSL(
     {
         vec4 t = texture(tex, pos_);
         vec3 rgb = vec3(rand(t.x, t.y), rand(t.y, t.x), rand(t.x - t.y, t.x));
-        color = vec4(0.9f + 0.1f*rgb, 1.0f);
+		color = vec4(0.9f + 0.1f*rgb, 1.0f);
     }
+);
+
+const char* white_frag_src = GLSL(
+	layout(location = 0) out vec4 color;
+	in vec2 pos_;  /* 0 to 1 range */
+
+	uniform sampler2D tex;
+
+	void main()
+	{
+		color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	}
 );
 
 const char* sum_frag_src = GLSL(
@@ -228,14 +240,14 @@ void voronoi_cone_bind(uint16_t n)
     /* This is the tip of the cone */
     buf[0] = 0;
     buf[1] = 0;
-    buf[2] = -1;
+    buf[2] = 0;
 
     for (uint16_t i=0; i <= n; ++i)
     {
         float angle = (float)(2 * M_PI * i / n);
         buf[i*3 + 3] = cosf(angle);
         buf[i*3 + 4] = sinf(angle);
-        buf[i*3 + 5] = 1;
+        buf[i*3 + 5] = 2;
     }
 
     glGenBuffers(1, &vbo);
@@ -266,11 +278,11 @@ GLuint voronoi_instances(const Config* c)
         int y = rand() % c->height;
         uint8_t p = c->img[y*c->width + x];
 
-        if ((rand() % 256) > p)
+        //if ((rand() % 256) > p)
         {
             buf[3*i]     = (x + 0.5f) / c->width;
             buf[3*i + 1] = (y + 0.5f) / c->height;
-            buf[3*i + 2] = 0.0f;
+            buf[3*i + 2] = 0.5f;
             i++;
         }
     }
@@ -280,7 +292,7 @@ GLuint voronoi_instances(const Config* c)
     glBufferData(GL_ARRAY_BUFFER, bytes, buf, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 3*sizeof(float), 0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), 0);
     glVertexAttribDivisor(1, 1);
 
     free(buf);
@@ -488,7 +500,7 @@ const char* stipples_vert_src = GLSL(
 
     void main()
     {
-        vec2 scaled = vec2(pos.x * radius.x, pos.y * radius.y) * sqrt(offset.z);
+		vec2 scaled = vec2(pos.x * radius.x, pos.y * radius.y);// *sqrt(offset.z);
         gl_Position = vec4(scaled + 2.0f*offset.xy - 1.0f, 0.0f, 1.0f);
     }
 );
@@ -586,7 +598,7 @@ int main(int argc, char** argv)
         GLuint quad_vao = quad_new();
         GLuint blit_program = program_link(
             shader_compile(GL_VERTEX_SHADER, quad_vert_src),
-            shader_compile(GL_FRAGMENT_SHADER, blit_frag_src));
+            c->show_voronoi ? shader_compile(GL_FRAGMENT_SHADER, blit_frag_src) : shader_compile(GL_FRAGMENT_SHADER, white_frag_src));
         Stipples* stipples = stipples_new(c, v);
 
 		int i = 0;
@@ -611,16 +623,18 @@ int main(int argc, char** argv)
 
             glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
-            /*  Render cell centroids as white dots  */
+            /*  Render cell centroids as back dots  */
             stipples_draw(c, stipples);
 
             /*  Draw and poll   */
             glfwSwapBuffers(win);
             glfwPollEvents();
 
+			if (i == 0)
+				Sleep(10000);
+
 			time_t curr_time = time(NULL);
 			printf("Iter #%d, time since start %ju seconds\n", ++i, (uintmax_t)curr_time - (uintmax_t)start_time);
-//			Sleep(100000);
         }
     }
     else    /* Non-interactive mode */

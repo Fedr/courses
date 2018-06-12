@@ -33,10 +33,11 @@ Config* parse_args(int argc, char** argv)
 	float r = 0.01f;
 	int iter = -1;
 	const char* out = NULL;
+	int show_voronoi = 0;
 
 	while (1)
 	{
-		char c = getopt(argc, argv, "r:n:o:i:");
+		char c = getopt(argc, argv, "vr:n:o:i:");
 		if (c == -1) { break; }
 
 		switch (c)
@@ -52,6 +53,9 @@ Config* parse_args(int argc, char** argv)
 			break;
 		case 'r':
 			r = 0.01f * (float)atof(optarg);
+			break;
+		case 'v':
+			show_voronoi = 1;
 			break;
 		default:
 			print_usage(argv[0]);
@@ -99,13 +103,14 @@ Config* parse_args(int argc, char** argv)
 	Config* c = (Config*)calloc(1, sizeof(Config));
 	(*c) = (Config) {
 		.img = img,
-			.width = (uint16_t)x,
-			.height = (uint16_t)y,
-			.samples = (uint16_t)n,
-			.resolution = 256,
-			.radius = r,
-			.iter = iter,
-			.out = out
+		.width = (uint16_t)x,
+		.height = (uint16_t)y,
+		.samples = (uint16_t)n,
+		.resolution = 256,
+		.radius = r,
+		.iter = iter,
+		.out = out,
+		.show_voronoi = show_voronoi
 	};
 
 	config_set_aspect_ratio(c);
