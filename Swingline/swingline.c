@@ -114,6 +114,7 @@ const char* sum_frag_src = GLSL(
 
     uniform sampler2D voronoi;
     uniform sampler2D img;
+    uniform samplerBuffer pts;
 
     void main()
     {
@@ -142,6 +143,10 @@ const char* sum_frag_src = GLSL(
         // Normalize to the 0 - 1 range
         color.x = color.x / tex_size.x;
         color.y = color.y / tex_size.y;
+        // this is to limit points speed and to avoid zeros in weight and count
+        float inertia = 0.01f / tex_size.y;
+        color.xy += inertia * texelFetch(pts, my_index).xy;
+        color.w += inertia;
 	}
 );
 
@@ -159,17 +164,11 @@ const char* feedback_src = GLSL(
         {
             sum += texelFetch(summed, ivec2(index, y), 0);
         }
-		if (sum.w > 0) // to avoid NaNs
-		{
-			pos.xy = sum.xy / sum.w;
-			pos.z = sum.w / sum.z;
-		}
-		else
-		{ // reintroduce the point in a location depending on its id
-			pos.x = (index % 256u) / 255.0f;
-			pos.y = ((index / 256u) % 256u) / 255.0f;
-			pos.z = 0.5f;
-		}
+		pos.xy = sum.xy / sum.w;
+        if (sum.w <= sum.z)
+		    pos.z = sum.w / sum.z;
+        else
+            pos.z = 0.1f; //no single pixel in voronoi region
 	}
 );
 
@@ -224,6 +223,7 @@ typedef struct Voronoi_ {
     GLuint pts;     /*  VBO containing point locations  */
     GLuint prog;    /*  Shader program (compiled)       */
     GLuint img;     /*  Target image texture            */
+    GLuint pts_tex; /*  Texture with pts                */
 
     GLuint tex;     /*  RGB texture (bound to fbo)          */
     GLuint depth;   /*  Depth texture (bound to fbo)        */
@@ -320,6 +320,7 @@ Voronoi* voronoi_new(const Config* cfg, uint8_t* img)
     v->tex   = texture_new();
     v->depth = texture_new();
     v->img   = texture_new();
+    glGenTextures(1, &v->pts_tex);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glBindTexture(GL_TEXTURE_2D, v->tex);
@@ -417,6 +418,11 @@ void sum_draw(Config* cfg, Voronoi* v, Sum* s)
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, v->img);
     glUniform1i(glGetUniformLocation(s->prog, "img"), 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_BUFFER, v->pts_tex);
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, v->pts);
+    glUniform1i(glGetUniformLocation(s->prog, "pts"), 2);
 
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     teardown(viewport);
@@ -634,8 +640,8 @@ int main(int argc, char** argv)
             glfwSwapBuffers(win);
             glfwPollEvents();
 
-			if (i == 0)
-				Sleep(10000);
+//			if (i == 0)
+//				Sleep(10000);
 
 			time_t curr_time = time(NULL);
 			printf("Iter #%d, time since start %ju seconds\n", ++i, (uintmax_t)curr_time - (uintmax_t)start_time);
