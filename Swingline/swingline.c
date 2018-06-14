@@ -44,7 +44,7 @@ const char* voronoi_vert_src = GLSL(
 
     void main()
     {
-        gl_Position = vec4(pos.xy*scale + 2.0f*offset.xy - 1.0f, pos.z*offset.z, 1.0f);
+        gl_Position = vec4(pos.xy*scale + 2.0f*offset.xy - 1.0f, pos.z/*offset.z*/, 1.0f);
 
         // Pick color based on instance ID
         int r = gl_InstanceID           % 256;
@@ -304,7 +304,7 @@ GLuint voronoi_instances(const Config* c)
             int y = rand() % c->height;
             uint8_t p = c->img[y*c->width + x];
 
-            //if ((rand() % 256) > p)
+            if ((rand() % 256) > p)
             {
                 buf[3 * i] = (x + 0.5f) / c->width;
                 buf[3 * i + 1] = (y + 0.5f) / c->height;
@@ -534,7 +534,7 @@ const char* stipples_vert_src = GLSL(
 
     void main()
     {
-		vec2 scaled = vec2(pos.x * radius.x, pos.y * radius.y);// *sqrt(offset.z);
+		vec2 scaled = vec2(pos.x * radius.x, pos.y * radius.y) * sqrt(offset.z);
         gl_Position = vec4(scaled + 2.0f*offset.xy - 1.0f, 0.0f, 1.0f);
     }
 );
