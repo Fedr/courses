@@ -104,7 +104,7 @@ Config* parse_args(int argc, char** argv)
 		.width = (uint16_t)x,
 		.height = (uint16_t)y,
 		.samples = (uint16_t)n,
-		.resolution = 256,
+		.resolution = 128,
         .stipple_resolution = 10,
         .stipple_half_axis = stipple_half_axis,
 		.radius = r,

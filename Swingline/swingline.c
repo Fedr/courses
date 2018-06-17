@@ -235,28 +235,66 @@ typedef struct Voronoi_ {
  *  Must be called with a bound VAO; binds the cone into vertex attribute
  *  slot 0
  */
-void voronoi_cone_bind(uint16_t n)
+void voronoi_cone_bind(const Config* cfg)
 {
-    size_t bytes = (n + 1) * 3 * sizeof(float);
+    uint16_t n = cfg->resolution;
+    size_t bytes = (2 * n + 4) * 3 * sizeof(float);
     float* buf = (float*)malloc(bytes);
 
-    size_t indexBytes = n * 3 * sizeof(GLushort);
+    size_t indexBytes = (2 * n + 4) * 3 * sizeof(GLushort);
     GLushort* indexBuf = (GLushort*)malloc(indexBytes);
 
-    /* This is the tip of the cone */
-    buf[0] = 0;
+    float hw = cfg->stipple_half_axis;
+
+    /* Tip of left cone */
+    buf[0] = -hw;
     buf[1] = 0;
     buf[2] = 0;
 
-    for (uint16_t i=0; i < n; ++i)
+    /* Tip of right cone */
+    buf[3] = +hw;
+    buf[4] = 0;
+    buf[5] = 0;
+
+    // central ridge
+    indexBuf[0] = 0;
+    indexBuf[1] = n + 2;
+    indexBuf[2] = n + 3;
+
+    indexBuf[3] = 0;
+    indexBuf[4] = n + 3;
+    indexBuf[5] = 1;
+
+    indexBuf[6] = 0;
+    indexBuf[7] = 1;
+    indexBuf[8] = 2 * n + 3;
+
+    indexBuf[9] = 0;
+    indexBuf[10] = 2 * n + 3;
+    indexBuf[11] = 2;
+
+    for (GLushort i = 0; i <= n; ++i)
     {
-        float angle = (float)(2 * M_PI * i / n);
-        buf[i*3 + 3] = cosf(angle);
-        buf[i*3 + 4] = sinf(angle);
-        buf[i*3 + 5] = 2;
-        indexBuf[i*3] = 0;
-        indexBuf[i*3 + 1] = i+1;
-        indexBuf[i*3 + 2] = (i+1 < n) ? i+2 : 1;
+        float angle = (float)(M_PI * i / n);
+        //left cone
+        buf[i * 3 + 6] = -sinf(angle) - hw;
+        buf[i * 3 + 7] = cosf(angle);
+        buf[i * 3 + 8] = 2;
+        //right cone
+        buf[n * 3 + i * 3 + 9] = sinf(angle) + hw;
+        buf[n * 3 + i * 3 +10] = -cosf(angle);
+        buf[n * 3 + i * 3 +11] = 2;
+        if (i < n)
+        {
+            // left cone triangle
+            indexBuf[i * 3 + 12] = 0;
+            indexBuf[i * 3 + 13] = 2 + i;
+            indexBuf[i * 3 + 14] = 3 + i;
+            // right cone triangle
+            indexBuf[n * 3 + i * 3 + 12] = 1;
+            indexBuf[n * 3 + i * 3 + 13] = n + 3 + i;
+            indexBuf[n * 3 + i * 3 + 14] = n + 4 + i;
+        }
     }
 
     GLuint vbo;
@@ -345,7 +383,7 @@ Voronoi* voronoi_new(const Config* cfg, uint8_t* img)
     glGenVertexArrays(1, &v->vao);
 
     glBindVertexArray(v->vao);
-        voronoi_cone_bind(cfg->resolution);         /* Uses bound VAO   */
+        voronoi_cone_bind(cfg);                     /* Uses bound VAO   */
         v->pts = voronoi_instances(cfg);            /* (same) */
     glBindVertexArray(0);
 
@@ -395,7 +433,7 @@ void voronoi_draw(Config* cfg, Voronoi* v)
     glUseProgram(v->prog);
     glBindVertexArray(v->vao);
     glUniform2f(glGetUniformLocation(v->prog, "scale"), cfg->sx, cfg->sy);
-    glDrawElementsInstanced(GL_TRIANGLES, 3 * cfg->resolution, GL_UNSIGNED_SHORT, 0, cfg->samples);
+    glDrawElementsInstanced(GL_TRIANGLES, 3 * (2 * cfg->resolution + 4), GL_UNSIGNED_SHORT, 0, cfg->samples);
 
     teardown(viewport);
 }
@@ -541,12 +579,12 @@ const char* stipples_vert_src = GLSL(
     layout(location=0) in vec2 pos;     /*  Absolute coordinates  */
     layout(location=1) in vec3 offset;  /*  0 to 1 */
 
-    /*  Seperate radii to compensate for window aspect ratio  */
-    uniform vec2 radius;
+    /*  Scale to compensate for window aspect ratio  */
+    uniform vec2 scale;
 
     void main()
     {
-		vec2 scaled = vec2(pos.x * radius.x, pos.y * radius.y);// *sqrt(offset.z);
+		vec2 scaled = vec2(pos.x * scale.x, pos.y * scale.y);// *sqrt(offset.z);
         gl_Position = vec4(scaled + 2.0f*offset.xy - 1.0f, 0.0f, 1.0f);
     }
 );
@@ -585,15 +623,15 @@ Stipples* stipples_new(Config* cfg, Voronoi* v)
         {
             float angle = (float)(M_PI * i / RES);
             //left cap
-            buf[i*2 + 2] = -sinf(angle) - cfg->stipple_half_axis;
-            buf[i*2 + 3] = cosf(angle);
+            buf[i*2 + 2] = -cfg->radius * sinf(angle) - cfg->stipple_half_axis;
+            buf[i*2 + 3] = cfg->radius * cosf(angle);
             //right cap
-            buf[RES*2 + i*2 + 4] = sinf(angle) + cfg->stipple_half_axis;
-            buf[RES*2 + i*2 + 5] = -cosf(angle);
+            buf[RES*2 + i*2 + 4] = cfg->radius * sinf(angle) + cfg->stipple_half_axis;
+            buf[RES*2 + i*2 + 5] = -cfg->radius * cosf(angle);
         }
         //upper join
         buf[RES*4 + 6] = -cfg->stipple_half_axis;
-        buf[RES*4 + 7] = 1;
+        buf[RES*4 + 7] = cfg->radius;
 
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -622,8 +660,7 @@ void stipples_draw(Config* cfg, Stipples* s)
 {
     glUseProgram(s->prog);
 
-    glUniform2f(glGetUniformLocation(s->prog, "radius"),
-                cfg->radius * cfg->sx, cfg->radius * cfg->sy);
+    glUniform2f(glGetUniformLocation(s->prog, "scale"), cfg->sx, cfg->sy);
     glBindVertexArray(s->vao);
     glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4 + 2*cfg->stipple_resolution, cfg->samples);
 
