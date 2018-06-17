@@ -19,6 +19,7 @@ typedef struct Config_ {
 	const char* out;        /*  Output file name  */
     const char* in_points;  /*  Input file name with points */
     int show_voronoi;       /*  bool: whether to show Voronoi cells */
+    int weighted_voronoi;   /*  bool: whether to give more weight to points in light cells */
 } Config;
 
 Config* parse_args(int argc, char** argv);

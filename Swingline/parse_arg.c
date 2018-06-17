@@ -35,11 +35,12 @@ Config* parse_args(int argc, char** argv)
 	const char* out = NULL;
     const char* in_points = NULL;
     int show_voronoi = 0;
+    int weighted_voronoi = 0;
     float stipple_half_axis = 1;
 
 	while (1)
 	{
-		char c = getopt(argc, argv, "vr:n:o:i:p:h:");
+		char c = getopt(argc, argv, "vwr:n:o:i:p:h:");
 		if (c == -1) { break; }
 
 		switch (c)
@@ -65,6 +66,9 @@ Config* parse_args(int argc, char** argv)
         case 'v':
 			show_voronoi = 1;
 			break;
+        case 'w':
+            weighted_voronoi = 1;
+            break;
 		default:
 			print_usage(argv[0]);
 			exit(EXIT_FAILURE);
@@ -111,7 +115,8 @@ Config* parse_args(int argc, char** argv)
 		.iter = iter,
 		.out = out,
 		.in_points = in_points,
-		.show_voronoi = show_voronoi
+		.show_voronoi = show_voronoi,
+        .weighted_voronoi = weighted_voronoi
 	};
 
 	config_set_aspect_ratio(c);

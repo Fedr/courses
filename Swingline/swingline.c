@@ -44,6 +44,25 @@ const char* voronoi_vert_src = GLSL(
 
     void main()
     {
+        gl_Position = vec4(pos.xy*scale + 2.0f*offset.xy - 1.0f, pos.z, 1.0f);
+
+        // Pick color based on instance ID
+        int r = gl_InstanceID           % 256;
+        int g = (gl_InstanceID / 256)   % 256;
+        int b = (gl_InstanceID / 65536) % 256;
+        color_ = vec3(r / 255.0f, g / 255.0f, b / 255.0f);
+    }
+);
+
+const char* weighted_voronoi_vert_src = GLSL(
+    layout(location=0) in vec3 pos;     /*  Absolute coordinates  */
+    layout(location=1) in vec3 offset;  /*  0 to 1 */
+    uniform vec2 scale;
+
+    out vec3 color_;
+
+    void main()
+    {
         gl_Position = vec4(pos.xy*scale + 2.0f*offset.xy - 1.0f, pos.z*offset.z, 1.0f);
 
         // Pick color based on instance ID
@@ -354,7 +373,7 @@ GLuint voronoi_instances(const Config* c)
             int y = rand() % c->height;
             uint8_t p = c->img[y*c->width + x];
 
-            //if ((rand() % 256) > p)
+            if (c->weighted_voronoi || (rand() % 256) > p)
             {
                 buf[3 * i] = (x + 0.5f) / c->width;
                 buf[3 * i + 1] = (y + 0.5f) / c->height;
@@ -388,7 +407,7 @@ Voronoi* voronoi_new(const Config* cfg, uint8_t* img)
     glBindVertexArray(0);
 
     v->prog = program_link(
-        shader_compile(GL_VERTEX_SHADER, voronoi_vert_src),
+        cfg->weighted_voronoi ? shader_compile(GL_VERTEX_SHADER, weighted_voronoi_vert_src) : shader_compile(GL_VERTEX_SHADER, voronoi_vert_src),
         shader_compile(GL_FRAGMENT_SHADER, voronoi_frag_src));
 
     v->tex   = texture_new();
@@ -584,7 +603,21 @@ const char* stipples_vert_src = GLSL(
 
     void main()
     {
-		vec2 scaled = vec2(pos.x * scale.x, pos.y * scale.y);// *sqrt(offset.z);
+		vec2 scaled = vec2(pos.x * scale.x, pos.y * scale.y);
+        gl_Position = vec4(scaled + 2.0f*offset.xy - 1.0f, 0.0f, 1.0f);
+    }
+);
+
+const char* stipples_var_radius_vert_src = GLSL(
+    layout(location = 0) in vec2 pos;     /*  Absolute coordinates  */
+    layout(location = 1) in vec3 offset;  /*  0 to 1 */
+
+    /*  Scale to compensate for window aspect ratio  */
+    uniform vec2 scale;
+
+    void main()
+    {
+        vec2 scaled = vec2(pos.x * scale.x, pos.y * scale.y) * sqrt(offset.z);
         gl_Position = vec4(scaled + 2.0f*offset.xy - 1.0f, 0.0f, 1.0f);
     }
 );
@@ -649,7 +682,7 @@ Stipples* stipples_new(Config* cfg, Voronoi* v)
     glVertexAttribDivisor(1, 1);
 
     s->prog = program_link(
-        shader_compile(GL_VERTEX_SHADER, stipples_vert_src),
+        cfg->weighted_voronoi ? shader_compile(GL_VERTEX_SHADER, stipples_vert_src) : shader_compile(GL_VERTEX_SHADER, stipples_var_radius_vert_src),
         shader_compile(GL_FRAGMENT_SHADER, stipples_frag_src));
 
     teardown(NULL);
@@ -769,12 +802,21 @@ int main(int argc, char** argv)
 
         for (int i=0; i < c->samples; ++i)
         {
-			fprintf(f,
-				"    <circle cx=\"%f\" cy=\"%f\" r=\"%f\" fill=\"black\" />\n",
-				//pts[i][0], pts[i][1], pts[i][2]);
-                c->width*pts[i][0], c->height - c->height*pts[i][1],
-                c->radius * fmin(c->sx, c->sy) * fmin(c->width, c->height) *
-                    pts[i][2]);
+            if (c->stipple_half_axis == 0)
+            {
+                fprintf(f,
+                    "    <circle cx=\"%f\" cy=\"%f\" r=\"%f\" fill=\"black\" />\n",
+                    c->width*pts[i][0], c->height*(1 - pts[i][1]),
+                    c->weighted_voronoi ? c->radius : c->radius * fmin(c->sx, c->sy) * fmin(c->width, c->height) * pts[i][2]);
+            }
+            else
+            {
+                fprintf(f,
+                    "    <line stroke-linecap=\"round\" x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" stroke=\"black\" stroke-width=\"%f\" />\n",
+                    c->width*(pts[i][0] - 0.5f * c->sx * c->stipple_half_axis), c->height*(1 - pts[i][1]),
+                    c->width*(pts[i][0] + 0.5f * c->sx * c->stipple_half_axis), c->height*(1 - pts[i][1]),
+                    c->weighted_voronoi ? c->radius : c->radius * fmin(c->sx, c->sy) * fmin(c->width, c->height) * pts[i][2]);
+            }
         }
 
         fprintf(f, "</svg>");
