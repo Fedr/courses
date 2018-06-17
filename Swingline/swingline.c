@@ -237,29 +237,41 @@ typedef struct Voronoi_ {
  */
 void voronoi_cone_bind(uint16_t n)
 {
-    GLuint vbo;
-    size_t bytes = (n + 2) * 3 * sizeof(float);
+    size_t bytes = (n + 1) * 3 * sizeof(float);
     float* buf = (float*)malloc(bytes);
+
+    size_t indexBytes = n * 3 * sizeof(GLushort);
+    GLushort* indexBuf = (GLushort*)malloc(indexBytes);
 
     /* This is the tip of the cone */
     buf[0] = 0;
     buf[1] = 0;
     buf[2] = 0;
 
-    for (uint16_t i=0; i <= n; ++i)
+    for (uint16_t i=0; i < n; ++i)
     {
         float angle = (float)(2 * M_PI * i / n);
         buf[i*3 + 3] = cosf(angle);
         buf[i*3 + 4] = sinf(angle);
         buf[i*3 + 5] = 2;
+        indexBuf[i*3] = 0;
+        indexBuf[i*3 + 1] = i+1;
+        indexBuf[i*3 + 2] = (i+1 < n) ? i+2 : 1;
     }
 
+    GLuint vbo;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, bytes, buf, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
+    GLuint indexVBO;
+    glGenBuffers(1, &indexVBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexVBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBytes, indexBuf, GL_STATIC_DRAW);
+
+    free(indexBuf);
     free(buf);
 }
 
@@ -383,7 +395,7 @@ void voronoi_draw(Config* cfg, Voronoi* v)
     glUseProgram(v->prog);
     glBindVertexArray(v->vao);
     glUniform2f(glGetUniformLocation(v->prog, "scale"), cfg->sx, cfg->sy);
-    glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, cfg->resolution+2, cfg->samples);
+    glDrawElementsInstanced(GL_TRIANGLES, 3 * cfg->resolution, GL_UNSIGNED_SHORT, 0, cfg->samples);
 
     teardown(viewport);
 }
