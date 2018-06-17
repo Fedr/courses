@@ -35,10 +35,11 @@ Config* parse_args(int argc, char** argv)
 	const char* out = NULL;
     const char* in_points = NULL;
     int show_voronoi = 0;
+    float stipple_half_axis = 1;
 
 	while (1)
 	{
-		char c = getopt(argc, argv, "vr:n:o:i:p:");
+		char c = getopt(argc, argv, "vr:n:o:i:p:h:");
 		if (c == -1) { break; }
 
 		switch (c)
@@ -58,7 +59,10 @@ Config* parse_args(int argc, char** argv)
         case 'r':
 			r = 0.01f * (float)atof(optarg);
 			break;
-		case 'v':
+        case 'h':
+            stipple_half_axis = (float)atof(optarg);
+            break;
+        case 'v':
 			show_voronoi = 1;
 			break;
 		default:
@@ -101,6 +105,8 @@ Config* parse_args(int argc, char** argv)
 		.height = (uint16_t)y,
 		.samples = (uint16_t)n,
 		.resolution = 256,
+        .stipple_resolution = 10,
+        .stipple_half_axis = stipple_half_axis,
 		.radius = r,
 		.iter = iter,
 		.out = out,

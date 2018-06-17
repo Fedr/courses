@@ -9,6 +9,9 @@ typedef struct Config_ {
 	uint16_t samples;       /*  Number of Voronoi cells */
 	uint16_t resolution;    /*  Resolution of Voronoi cones  */
 
+    int stipple_resolution; /*  Number of points on a cap half-circle of every stipple */
+    float stipple_half_axis;/*  This controls stipple elongation, 1 for circular stipple */
+
 	float sx, sy;           /*  Scale (used to adjust for aspect ratio) */
 	float radius;           /*  Stipple radius (in arbitrary units)     */
 

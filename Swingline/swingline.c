@@ -563,17 +563,25 @@ Stipples* stipples_new(Config* cfg, Voronoi* v)
 
     {   // Make and bind a VBO that draws a simple circle
         GLuint vbo;
-        size_t bytes = (2 + cfg->resolution) * 2 * sizeof(float);
+        const int RES = cfg->stipple_resolution;
+        size_t bytes = (4 + 2 * RES) * 2 * sizeof(float);
         float* buf = (float*)malloc(bytes);
 
         buf[0] = 0;
         buf[1] = 0;
-        for (size_t i=0; i <= cfg->resolution; ++i)
+        for (size_t i=0; i <= RES; ++i)
         {
-            float angle = (float)(2 * M_PI * i / cfg->resolution);
-            buf[i*2 + 2] = cosf(angle);
-            buf[i*2 + 3] = sinf(angle);
+            float angle = (float)(M_PI * i / RES);
+            //left cap
+            buf[i*2 + 2] = -sinf(angle) - cfg->stipple_half_axis;
+            buf[i*2 + 3] = cosf(angle);
+            //right cap
+            buf[RES*2 + i*2 + 4] = sinf(angle) + cfg->stipple_half_axis;
+            buf[RES*2 + i*2 + 5] = -cosf(angle);
         }
+        //upper join
+        buf[RES*4 + 6] = -cfg->stipple_half_axis;
+        buf[RES*4 + 7] = 1;
 
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -605,7 +613,7 @@ void stipples_draw(Config* cfg, Stipples* s)
     glUniform2f(glGetUniformLocation(s->prog, "radius"),
                 cfg->radius * cfg->sx, cfg->radius * cfg->sy);
     glBindVertexArray(s->vao);
-    glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, cfg->resolution+2, cfg->samples);
+    glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4 + 2*cfg->stipple_resolution, cfg->samples);
 
     teardown(NULL);
 }
