@@ -6,3 +6,5 @@ Release
 Debug
 *.pyc
 testout.*
+build-BoostVoronoi*
+*.pro.user
