@@ -515,4 +515,4 @@ int main(int argc, char* argv[]) {
   return app.exec();
 }
 
-//#include "voronoi_visualizer.moc"
+#include "voronoi_visualizer.moc"
